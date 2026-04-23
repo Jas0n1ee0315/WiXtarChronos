@@ -42,6 +42,14 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    private val _actionStatus = MutableStateFlow<ActionStatus?>(null)
+    val actionStatus: StateFlow<ActionStatus?> = _actionStatus
+
+    enum class ActionStatus {
+        SUCCESS_IN, SUCCESS_OUT, SUCCESS_OVERTIME,
+        FAILURE_IN, FAILURE_OUT, FAILURE_OVERTIME
+    }
+
     init {
         viewModelScope.launch {
             // Simulate loading animation
@@ -65,19 +73,46 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
             val en = enc.value
             val gps = gpsLocation.value
 
+            val isIn = clockInTime.value.isNullOrEmpty()
+            val isOut = !isIn && clockOutTime.value.isNullOrEmpty()
+            
             val result = repository.clockIn(id, pass, ck, en, gps)
             if (result.isSuccess) {
                 val time = result.getOrNull() ?: ""
                 vibrateSuccess()
-                if (clockInTime.value.isNullOrEmpty()) {
+                if (isIn) {
                     storage.saveClockIn(time)
                     notificationHelper.scheduleReminders(time)
-                } else {
+                    _actionStatus.value = ActionStatus.SUCCESS_IN
+                } else if (isOut) {
                     storage.saveClockOut(time)
+                    _actionStatus.value = ActionStatus.SUCCESS_OUT
+                } else {
+                    _actionStatus.value = ActionStatus.SUCCESS_OVERTIME
+                }
+                
+                launch {
+                    kotlinx.coroutines.delay(10000)
+                    if (_actionStatus.value?.name?.startsWith("SUCCESS") == true) {
+                        _actionStatus.value = null
+                    }
                 }
             } else {
                 vibrateFailure()
                 _error.value = result.exceptionOrNull()?.message ?: "打卡失敗"
+                _actionStatus.value = when {
+                    isIn -> ActionStatus.FAILURE_IN
+                    isOut -> ActionStatus.FAILURE_OUT
+                    else -> ActionStatus.FAILURE_OVERTIME
+                }
+                
+                launch {
+                    kotlinx.coroutines.delay(3000)
+                    if (_actionStatus.value?.name?.startsWith("FAILURE") == true) {
+                        _actionStatus.value = null
+                        _error.value = null
+                    }
+                }
             }
         }
     }

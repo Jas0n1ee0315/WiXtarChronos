@@ -11,9 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,6 +88,7 @@ fun MainScreen(viewModel: ClockViewModel) {
     val clockInTime by viewModel.clockInTime.collectAsState()
     val clockOutTime by viewModel.clockOutTime.collectAsState()
     val error by viewModel.error.collectAsState()
+    val actionStatus by viewModel.actionStatus.collectAsState()
 
     val offWorkTimeStr = remember(clockInTime, clockOutTime) {
         if (clockInTime == null || clockInTime == "") {
@@ -107,10 +106,30 @@ fun MainScreen(viewModel: ClockViewModel) {
         }
     }
 
-    val buttonText = remember(clockInTime, clockOutTime) {
-        if (clockInTime == null || clockInTime == "") "打上班卡"
-        else if (clockOutTime == null || clockOutTime == "") "打下班卡"
-        else "打加班卡"
+    val buttonText = remember(clockInTime, clockOutTime, actionStatus) {
+        when (actionStatus) {
+            ClockViewModel.ActionStatus.SUCCESS_IN -> "打上班卡成功"
+            ClockViewModel.ActionStatus.SUCCESS_OUT -> "打下班卡成功"
+            ClockViewModel.ActionStatus.SUCCESS_OVERTIME -> "打加班卡成功"
+            ClockViewModel.ActionStatus.FAILURE_IN -> "打上班卡失敗"
+            ClockViewModel.ActionStatus.FAILURE_OUT -> "打下班卡失敗"
+            ClockViewModel.ActionStatus.FAILURE_OVERTIME -> "打加班卡失敗"
+            null -> {
+                if (clockInTime == null || clockInTime == "") "打上班卡"
+                else if (clockOutTime == null || clockOutTime == "") "打下班卡"
+                else "打加班卡"
+            }
+        }
+    }
+
+    val buttonColors = if (actionStatus != null) {
+        val isSuccess = actionStatus?.name?.startsWith("SUCCESS") == true
+        ButtonDefaults.buttonColors(
+            containerColor = if (isSuccess) Color.Green else Color.Red,
+            contentColor = Color.White
+        )
+    } else {
+        ButtonDefaults.buttonColors()
     }
 
     val listState = rememberTransformingLazyColumnState()
@@ -119,10 +138,11 @@ fun MainScreen(viewModel: ClockViewModel) {
         scrollState = listState,
         edgeButton = {
             EdgeButton(
-                onClick = { viewModel.doClockAction() }
+                onClick = { viewModel.doClockAction() },
+                colors = buttonColors
             ) {
                 Text(
-                    text = if (error != null) "重試" else buttonText,
+                    text = if (error != null && actionStatus == null) "重試" else buttonText,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -171,7 +191,7 @@ fun MainScreen(viewModel: ClockViewModel) {
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
                 )
             }
-            if (error != null) {
+            if (error != null && actionStatus == null) {
                 item {
                     Text(
                         text = error!!,

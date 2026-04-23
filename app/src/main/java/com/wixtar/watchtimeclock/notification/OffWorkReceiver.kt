@@ -13,16 +13,25 @@ import kotlinx.coroutines.launch
 class OffWorkReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val helper = NotificationHelper(context)
+        val storage = AppStorage(context)
+        
         when (intent.action) {
             "SCHEDULE_REMINDER_10" -> {
-                helper.showTenMinutesBeforeNotification()
+                CoroutineScope(Dispatchers.IO).launch {
+                    if (storage.notifyBeforeOffWork.first()) {
+                        helper.showTenMinutesBeforeNotification()
+                    }
+                }
             }
             "SCHEDULE_REMINDER_NOW" -> {
-                helper.showOffWorkNowNotification()
+                CoroutineScope(Dispatchers.IO).launch {
+                    if (storage.notifyOnOffWork.first()) {
+                        helper.showOffWorkNowNotification()
+                    }
+                }
             }
             NotificationHelper.ACTION_CLOCK_OUT -> {
                 // Perform clock out in background
-                val storage = AppStorage(context)
                 val repository = ClockRepository(storage)
                 CoroutineScope(Dispatchers.IO).launch {
                     val id = storage.empId.first()

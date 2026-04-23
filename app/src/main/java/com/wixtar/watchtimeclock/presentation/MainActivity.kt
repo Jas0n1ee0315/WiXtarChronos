@@ -193,12 +193,16 @@ fun SettingsScreen(viewModel: ClockViewModel) {
     val cookie by viewModel.cookie.collectAsState()
     val enc by viewModel.enc.collectAsState()
     val gpsLocation by viewModel.gpsLocation.collectAsState()
+    val notifyBefore by viewModel.notifyBeforeOffWork.collectAsState()
+    val notifyOn by viewModel.notifyOnOffWork.collectAsState()
 
     var tempEmpId by remember(empId) { mutableStateOf(empId) }
     var tempPassword by remember(password) { mutableStateOf(password) }
     var tempCookie by remember(cookie) { mutableStateOf(cookie) }
     var tempEnc by remember(enc) { mutableStateOf(enc) }
     var tempGps by remember(gpsLocation) { mutableStateOf(gpsLocation) }
+    var tempNotifyBefore by remember(notifyBefore) { mutableStateOf(notifyBefore) }
+    var tempNotifyOn by remember(notifyOn) { mutableStateOf(notifyOn) }
 
     val listState = rememberTransformingLazyColumnState()
 
@@ -224,15 +228,33 @@ fun SettingsScreen(viewModel: ClockViewModel) {
             item { SettingItem("GPS位置", tempGps) { tempGps = it } }
             
             item {
+                ToggleSettingItem("下班前十分通知", tempNotifyBefore) { tempNotifyBefore = it }
+            }
+            item {
+                ToggleSettingItem("可下班時通知", tempNotifyOn) { tempNotifyOn = it }
+            }
+
+            item {
                 Button(
-                    onClick = { viewModel.saveSettings(tempEmpId, tempPassword, tempCookie, tempEnc, tempGps) },
+                    onClick = { viewModel.saveSettings(tempEmpId, tempPassword, tempCookie, tempEnc, tempGps, tempNotifyBefore, tempNotifyOn) },
+                    label = { Text("儲存設定") },
                     modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
-                ) {
-                    Text("儲存設定")
-                }
+                )
             }
         }
     }
+}
+
+@Composable
+fun ToggleSettingItem(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    SwitchButton(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 16.dp)
+    )
 }
 
 @Composable

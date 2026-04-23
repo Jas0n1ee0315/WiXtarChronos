@@ -30,6 +30,8 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     val cookie = storage.cookie.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
     val enc = storage.enc.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
     val gpsLocation = storage.gpsLocation.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "22.987929,120.197210")
+    val notifyBeforeOffWork = storage.notifyBeforeOffWork.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), true)
+    val notifyOnOffWork = storage.notifyOnOffWork.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), true)
 
     val clockInTime = storage.clockInTime.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
     val clockOutTime = storage.clockOutTime.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
@@ -48,9 +50,9 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun saveSettings(empId: String, pass: String, cookie: String, enc: String, gps: String) {
+    fun saveSettings(empId: String, pass: String, cookie: String, enc: String, gps: String, notifyBefore: Boolean, notifyOn: Boolean) {
         viewModelScope.launch {
-            storage.saveSettings(empId, pass, cookie, enc, gps)
+            storage.saveSettings(empId, pass, cookie, enc, gps, notifyBefore, notifyOn)
         }
     }
 

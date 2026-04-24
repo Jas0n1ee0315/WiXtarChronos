@@ -39,10 +39,14 @@ class AppStorage(private val context: Context) {
     val notifyOnOffWork: Flow<Boolean> = context.dataStore.data.map { it[NOTIFY_ON_OFF_WORK] ?: true }
 
     val clockInTime: Flow<String?> = context.dataStore.data.map { prefs ->
-        if (prefs[LAST_CLOCK_DATE] == LocalDate.now().toString()) prefs[CLOCK_IN_TIME] else null 
+        val date = prefs[LAST_CLOCK_DATE]
+        val today = LocalDate.now().toString()
+        if (date == today) prefs[CLOCK_IN_TIME] else null 
     }
     val clockOutTime: Flow<String?> = context.dataStore.data.map { prefs ->
-        if (prefs[LAST_CLOCK_DATE] == LocalDate.now().toString()) prefs[CLOCK_OUT_TIME] else null 
+        val date = prefs[LAST_CLOCK_DATE]
+        val today = LocalDate.now().toString()
+        if (date == today) prefs[CLOCK_OUT_TIME] else null
     }
 
     suspend fun saveSettings(empId: String, pass: String, cookie: String, enc: String, gps: String, notifyBefore: Boolean, notifyOn: Boolean) {
@@ -60,21 +64,29 @@ class AppStorage(private val context: Context) {
     suspend fun saveClockIn(time: String) {
         context.dataStore.edit { prefs ->
             val today = LocalDate.now().toString()
-            if (prefs[LAST_CLOCK_DATE] != today) {
-                prefs[CLOCK_IN_TIME] = time
-                prefs[CLOCK_OUT_TIME] = ""
-                prefs[LAST_CLOCK_DATE] = today
-            } else if (prefs[CLOCK_IN_TIME].isNullOrEmpty()) {
-                prefs[CLOCK_IN_TIME] = time
-            }
+            prefs[CLOCK_IN_TIME] = time
+            prefs[CLOCK_OUT_TIME] = ""
+            prefs[LAST_CLOCK_DATE] = today
         }
     }
 
     suspend fun saveClockOut(time: String) {
         context.dataStore.edit { prefs ->
             val today = LocalDate.now().toString()
-            if (prefs[LAST_CLOCK_DATE] == today) {
-                prefs[CLOCK_OUT_TIME] = time
+            prefs[CLOCK_OUT_TIME] = time
+            prefs[LAST_CLOCK_DATE] = today
+        }
+    }
+
+    suspend fun clearClockDataIfExpired() {
+        context.dataStore.edit { prefs ->
+            val today = LocalDate.now().toString()
+            val lastDate = prefs[LAST_CLOCK_DATE]
+            if (lastDate != null && lastDate != today) {
+                prefs[CLOCK_IN_TIME] = ""
+                prefs[CLOCK_OUT_TIME] = ""
+                // 我們不清除 LAST_CLOCK_DATE，或者更新它，取決於邏輯
+                // 這裡選擇不主動更新 LAST_CLOCK_DATE 為今日，直到真的打卡
             }
         }
     }

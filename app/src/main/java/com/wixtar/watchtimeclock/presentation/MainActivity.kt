@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -16,12 +17,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.wear.compose.foundation.SwipeToDismissValue
+import androidx.wear.compose.foundation.edgeSwipeToDismiss
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
-import androidx.wear.compose.material3.*
+import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
+import androidx.wear.compose.material3.AppScaffold
+import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.ButtonDefaults
+import androidx.wear.compose.material3.CircularProgressIndicator
+import androidx.wear.compose.material3.EdgeButton
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SwipeToDismissBox
+import androidx.wear.compose.material3.SwitchButton
+import androidx.wear.compose.material3.Text
 import com.wixtar.watchtimeclock.presentation.theme.星益欣打卡Theme
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -49,7 +63,7 @@ class MainActivity : ComponentActivity() {
                 val isLoading by viewModel.isLoading.collectAsState()
 
                 if (isLoading) {
-                    LoadingScreen()
+                    LoadingScreen(onDismiss = { viewModel.dismissLoading() })
                 } else {
                     AppContent(viewModel)
                 }
@@ -59,9 +73,12 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun LoadingScreen() {
+fun LoadingScreen(onDismiss: () -> Unit) {
     Box(
-        modifier = Modifier.fillMaxSize().background(Color.Black),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .clickable { onDismiss() },
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator()
@@ -71,13 +88,31 @@ fun LoadingScreen() {
 @Composable
 fun AppContent(viewModel: ClockViewModel) {
     val pagerState = rememberPagerState(pageCount = { 2 })
-    
+    val context = LocalContext.current as? ComponentActivity
+    val swipeToDismissState = rememberSwipeToDismissBoxState()
+
     AppScaffold {
-        HorizontalPager(state = pagerState) { page ->
-            if (page == 0) {
-                MainScreen(viewModel)
+        SwipeToDismissBox(
+            state = swipeToDismissState,
+            onDismissed = {
+                context?.finishAndRemoveTask()
+            }
+        ) { isBackground ->
+            if (!isBackground) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .edgeSwipeToDismiss(swipeToDismissState)
+                ) { page ->
+                    if (page == 0) {
+                        MainScreen(viewModel)
+                    } else {
+                        SettingsScreen(viewModel)
+                    }
+                }
             } else {
-                SettingsScreen(viewModel)
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black))
             }
         }
     }
@@ -90,6 +125,17 @@ fun MainScreen(viewModel: ClockViewModel) {
     val error by viewModel.error.collectAsState()
     val actionStatus by viewModel.actionStatus.collectAsState()
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val activity = context as? android.app.Activity
+        if (activity?.intent?.getBooleanExtra("EXTRA_AUTO_CLOCK", false) == true) {
+            // 延遲一下確保 ViewModel 狀態就緒
+            kotlinx.coroutines.delay(500)
+            viewModel.doClockAction()
+            activity.intent.removeExtra("EXTRA_AUTO_CLOCK")
+        }
+    }
+
     val offWorkTimeStr = remember(clockInTime, clockOutTime) {
         if (clockInTime == null || clockInTime == "") {
             "尚無進卡時間"
@@ -97,8 +143,10 @@ fun MainScreen(viewModel: ClockViewModel) {
             "已過下班時間"
         } else {
             try {
+                // 過濾掉 (雲端) 或 (本地) 標籤，只留下時間部分進行解析
+                val rawTime = clockInTime?.substringBefore(" ") ?: ""
                 val formatter = DateTimeFormatter.ofPattern("HH:mm")
-                val time = LocalTime.parse(clockInTime, formatter)
+                val time = LocalTime.parse(rawTime, formatter)
                 time.plusHours(8).format(formatter)
             } catch (e: Exception) {
                 "尚無進卡時間"
@@ -115,9 +163,14 @@ fun MainScreen(viewModel: ClockViewModel) {
             ClockViewModel.ActionStatus.FAILURE_OUT -> "打下班卡失敗"
             ClockViewModel.ActionStatus.FAILURE_OVERTIME -> "打加班卡失敗"
             null -> {
-                if (clockInTime == null || clockInTime == "") "打上班卡"
-                else if (clockOutTime == null || clockOutTime == "") "打下班卡"
-                else "打加班卡"
+                val hasIn = !clockInTime.isNullOrBlank()
+                val hasOut = !clockOutTime.isNullOrBlank()
+                
+                when {
+                    !hasIn -> "打上班卡"
+                    !hasOut -> "打下班卡"
+                    else -> "再次打下班卡"
+                }
             }
         }
     }

@@ -17,8 +17,10 @@ import java.time.ZonedDateTime
 class NotificationHelper(private val context: Context) {
     companion object {
         const val CHANNEL_ID = "off_work_reminders"
+        const val DEBUG_CHANNEL_ID = "debug_notifications"
         const val NOTIFICATION_ID_BEFORE = 1001
         const val NOTIFICATION_ID_NOW = 1002
+        const val NOTIFICATION_ID_DEBUG = 2001
         const val ACTION_CLOCK_OUT = "com.wixtar.watchtimeclock.ACTION_CLOCK_OUT"
         const val ACTION_REMINDER_10 = "SCHEDULE_REMINDER_10"
         const val ACTION_REMINDER_NOW = "SCHEDULE_REMINDER_NOW"
@@ -29,6 +31,8 @@ class NotificationHelper(private val context: Context) {
     }
 
     private fun createNotificationChannel() {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
         val name = "下班提醒"
         val descriptionText = "提醒您即將下班或已到下班時間"
         val importance = NotificationManager.IMPORTANCE_HIGH
@@ -37,8 +41,26 @@ class NotificationHelper(private val context: Context) {
             enableVibration(true)
             vibrationPattern = longArrayOf(0, 500, 200, 500)
         }
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
+
+        val debugName = "Debug 資訊"
+        val debugDesc = "顯示雲端同步的偵錯資訊"
+        val debugChannel = NotificationChannel(DEBUG_CHANNEL_ID, debugName, NotificationManager.IMPORTANCE_HIGH).apply {
+            description = debugDesc
+        }
+        notificationManager.createNotificationChannel(debugChannel)
+    }
+
+    fun showDebugNotification(title: String, message: String) {
+        val builder = NotificationCompat.Builder(context, DEBUG_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIFICATION_ID_DEBUG, builder.build())
     }
 
     fun scheduleReminders(clockInTimeStr: String) {

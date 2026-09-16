@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.wixtar.watchtimeclock"
+    namespace = "com.jas0n1ee.wixtar.chronos.watch"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.wixtar.watchtimeclock"
+        applicationId = "com.jas0n1ee.wixtar.chronos"
         minSdk = 30
         targetSdk = 36
         versionCode = 1
@@ -40,6 +40,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core"))
     implementation(libs.play.services.wearable)
     implementation(platform(libs.compose.bom))
     implementation(libs.ui)

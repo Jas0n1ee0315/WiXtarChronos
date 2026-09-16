@@ -23,5 +23,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "星益欣打卡"
-include(":app")
+include(":app", ":mobile", ":core")
  

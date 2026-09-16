@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="WiXtar 打卡"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.WiXtarCompanion">
+
+        <activity
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.WiXtarCompanion">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.service.MobileWearableListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.service.WiXtarTileService"
+            android:icon="@android:drawable/ic_dialog_info"
+            android:label="WiXtar 打卡"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget1x1Provider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_1x1_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget4x1Provider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_4x1_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidgetActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.jas0n1ee.wixtar.chronos.ACTION_PUNCH_CARD" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.notification.NotificationReceiver"
+            android:exported="false" />
+
+    </application>
+
+</manifest>

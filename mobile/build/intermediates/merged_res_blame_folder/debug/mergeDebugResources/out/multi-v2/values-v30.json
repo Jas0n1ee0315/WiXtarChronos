@@ -4,7 +4,7 @@
             "outputFile": "com.jas0n1ee.wixtar.chronos.mobile-mergeDebugResources-62:/values-v30/values-v30.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\E0101\\.gradle\\caches\\9.3.1\\transforms\\9db338063c12ebf583c9c90eac05789c\\workspace\\transformed\\material3\\res\\values-v30\\values-v30.xml",
+                    "source": "C:\\Users\\jce12\\.gradle\\caches\\9.3.1\\transforms\\9db338063c12ebf583c9c90eac05789c\\workspace\\transformed\\material3\\res\\values-v30\\values-v30.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
@@ -14,7 +14,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\E0101\\.gradle\\caches\\9.3.1\\transforms\\e3022421e82de0df9286354d4053e1c4\\workspace\\transformed\\core-splashscreen-1.2.0\\res\\values-v30\\values-v30.xml",
+                    "source": "C:\\Users\\jce12\\.gradle\\caches\\9.3.1\\transforms\\e3022421e82de0df9286354d4053e1c4\\workspace\\transformed\\core-splashscreen-1.2.0\\res\\values-v30\\values-v30.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",

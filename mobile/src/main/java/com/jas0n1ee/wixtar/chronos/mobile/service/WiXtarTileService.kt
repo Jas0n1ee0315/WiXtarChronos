@@ -55,17 +55,51 @@ class WiXtarTileService : TileService() {
                 Log.e("WiXtarTileService", "Quick Settings Tile punch failed: $errorMsg")
             }
 
-            tile.state = Tile.STATE_ACTIVE
-            tile.updateTile()
+            updateTileState()
         }
     }
 
     override fun onStartListening() {
         super.onStartListening()
-        qsTile?.apply {
-            state = Tile.STATE_ACTIVE
-            label = "WiXtar 打卡"
-            updateTile()
+        scope.launch {
+            updateTileState()
         }
+    }
+
+    private suspend fun updateTileState() {
+        val tile = qsTile ?: return
+        val storage = AppStorage(applicationContext)
+
+        val clockIn = storage.clockInTime.first()
+        val clockOut = storage.clockOutTime.first()
+
+        val rawTime = when {
+            !clockOut.isNullOrBlank() -> clockOut
+            !clockIn.isNullOrBlank() -> clockIn
+            else -> null
+        }
+
+        val subtitleText = formatSubtitleTime(rawTime)
+
+        tile.state = Tile.STATE_ACTIVE
+        tile.label = "打卡"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            tile.subtitle = subtitleText
+        }
+        tile.updateTile()
+    }
+
+    private fun formatSubtitleTime(raw: String?): String {
+        if (raw.isNullOrBlank()) return "-- : --"
+        val clean = raw.substringBefore(" ").trim()
+        if (clean.contains(":")) {
+            val parts = clean.split(":")
+            if (parts.size >= 2) {
+                val hh = parts[0].padStart(2, '0')
+                val mm = parts[1].padStart(2, '0')
+                return "$hh : $mm"
+            }
+        }
+        return "-- : --"
     }
 }

@@ -262,7 +262,7 @@ fun PunchCardScreen(
                 Text("打卡處理中...", style = MaterialTheme.typography.titleMedium)
             } else {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_briefcase_clock),
+                    painter = painterResource(id = R.drawable.ic_cloud_clock),
                     contentDescription = null,
                     modifier = Modifier.size(32.dp)
                 )

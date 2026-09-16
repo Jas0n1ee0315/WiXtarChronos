@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -24,13 +25,13 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     private val notificationHelper = NotificationHelper(application)
     private val vibrator = application.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
 
-    val empId = storage.empId.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
-    val password = storage.password.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
-    val cookie = storage.cookie.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
-    val enc = storage.enc.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
-    val gpsLocation = storage.gpsLocation.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "22.987929,120.197210")
-    val notifyBeforeOffWork = storage.notifyBeforeOffWork.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), true)
-    val notifyOnOffWork = storage.notifyOnOffWork.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), true)
+    val empId = storage.empId.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val password = storage.password.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val cookie = storage.cookie.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val enc = storage.enc.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val gpsLocation = storage.gpsLocation.stateIn(viewModelScope, SharingStarted.Eagerly, "22.987929,120.197210")
+    val notifyBeforeOffWork = storage.notifyBeforeOffWork.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val notifyOnOffWork = storage.notifyOnOffWork.stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     private val _cloudInTime = MutableStateFlow<String?>(null)
     private val _cloudOutTime = MutableStateFlow<String?>(null)
@@ -44,7 +45,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
             !local.isNullOrBlank() -> "$local (本地)"
             else -> null
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val clockOutTime: StateFlow<String?> = combine(
         _cloudOutTime,
@@ -55,7 +56,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
             !local.isNullOrBlank() -> "$local (本地)"
             else -> null
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -84,7 +85,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
 
     fun fetchCloudData() {
         viewModelScope.launch {
-            val ck = cookie.value
+            val ck = storage.cookie.first().trim()
             if (ck.isNotBlank()) {
                 repository.getCloudClockInfo(ck).onSuccess { (cloudIn, cloudOut, _) ->
                     _cloudInTime.value = cloudIn
@@ -113,11 +114,16 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     fun doClockAction() {
         viewModelScope.launch {
             _error.value = null
-            val id = empId.value
-            val pass = password.value
-            val ck = cookie.value
-            val en = enc.value
-            val gps = gpsLocation.value
+            val id = storage.empId.first().trim()
+            val pass = storage.password.first().trim()
+            val ck = storage.cookie.first().trim()
+            val en = storage.enc.first().trim()
+            val gps = storage.gpsLocation.first().trim()
+
+            if (id.isBlank() || pass.isBlank() || ck.isBlank() || en.isBlank()) {
+                _error.value = "請先同步或設定工號、密碼與驗證資訊"
+                return@launch
+            }
 
             val currentIn = clockInTime.value
             val currentOut = clockOutTime.value

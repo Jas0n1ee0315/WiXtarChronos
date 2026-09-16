@@ -42,7 +42,7 @@
 
         <service
             android:name="com.jas0n1ee.wixtar.chronos.mobile.service.WiXtarTileService"
-            android:icon="@android:drawable/ic_dialog_info"
+            android:icon="@drawable/ic_cloud_clock"
             android:label="WiXtar 打卡"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:exported="true">
@@ -52,7 +52,80 @@
         </service>
 
         <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget2x1Provider"
+            android:label="方形"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_2x1_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget2x1TranslucentProvider"
+            android:label="方形 (半透)"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_2x1_translucent_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidgetStadiumProvider"
+            android:label="膠囊"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_stadium_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidgetStadiumTranslucentProvider"
+            android:label="膠囊 (半透)"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_stadium_translucent_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidgetCircleProvider"
+            android:label="圓形"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_circle_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidgetCircleTranslucentProvider"
+            android:label="圓形 (半透)"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_circle_translucent_info" />
+        </receiver>
+
+        <receiver
             android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget1x1Provider"
+            android:label="小小方"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -63,14 +136,39 @@
         </receiver>
 
         <receiver
-            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget4x1Provider"
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget1x1TranslucentProvider"
+            android:label="小小方 (半透)"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/widget_4x1_info" />
+                android:resource="@xml/widget_1x1_translucent_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget1x1CircleProvider"
+            android:label="小小圓"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_1x1_circle_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget1x1CircleTranslucentProvider"
+            android:label="小小圓 (半透)"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_1x1_circle_translucent_info" />
         </receiver>
 
         <receiver

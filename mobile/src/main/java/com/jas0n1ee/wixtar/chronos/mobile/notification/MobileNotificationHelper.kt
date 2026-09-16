@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.jas0n1ee.wixtar.chronos.mobile.R
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -90,7 +91,7 @@ class MobileNotificationHelper(private val context: Context) {
     fun sendNotification(title: String, message: String) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_cloud_clock)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

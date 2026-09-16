@@ -3,24 +3,31 @@
     android:id="@+id/widget_1x1_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/holo_purple"
+    android:background="@drawable/widget_background_shape"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="12dp">
 
-    <ImageView
-        android:id="@+id/widget_1x1_icon"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:src="@drawable/ic_briefcase_clock"
-        android:tint="@android:color/white" />
+    <LinearLayout
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/widget_button_shape"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/widget_1x1_icon"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:src="@drawable/ic_cloud_clock"
+            android:tint="@color/widget_on_primary_container" />
+    </LinearLayout>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="8dp"
         android:text="打卡"
-        android:textColor="@android:color/white"
-        android:textSize="12sp"
+        android:textColor="@color/widget_on_surface"
+        android:textSize="13sp"
         android:textStyle="bold" />
 </LinearLayout>

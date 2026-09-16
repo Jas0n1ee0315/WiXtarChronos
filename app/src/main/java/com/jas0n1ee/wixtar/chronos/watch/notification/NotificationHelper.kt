@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.jas0n1ee.wixtar.chronos.watch.R
 import com.jas0n1ee.wixtar.chronos.watch.presentation.MainActivity
 import java.time.LocalTime
 import java.time.ZoneId
@@ -82,7 +83,7 @@ class NotificationHelper(private val context: Context) {
         val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_cloud_clock)
             .setContentTitle("下班提醒")
             .setContentText("再過10分鐘就可以下班囉！")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -98,7 +99,7 @@ class NotificationHelper(private val context: Context) {
         val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_cloud_clock)
             .setContentTitle("下班提醒")
             .setContentText("已滿 9 小時，記得打卡哦！")
             .setPriority(NotificationCompat.PRIORITY_HIGH)

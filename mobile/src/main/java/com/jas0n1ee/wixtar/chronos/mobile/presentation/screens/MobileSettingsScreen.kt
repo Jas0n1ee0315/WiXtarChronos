@@ -1,5 +1,6 @@
 package com.jas0n1ee.wixtar.chronos.mobile.presentation.screens
 
+import android.content.ClipboardManager
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -11,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Key
@@ -58,6 +60,33 @@ fun MobileSettingsScreen(
 
     var isPasswordVisible by remember { mutableStateOf(false) }
 
+    fun applyAndSaveParsedConfig(content: String) {
+        if (content.isNotBlank()) {
+            val result = viewModel.importConfigFromText(content)
+            val newCookie = if (result.cookie.isNotBlank()) result.cookie else tempCookie
+            val newEnc = if (result.enc.isNotBlank()) result.enc else tempEnc
+            val newEmpId = if (result.empId.isNotBlank()) result.empId else tempEmpId
+            val newPassword = if (result.password.isNotBlank()) result.password else tempPassword
+            val newGps = if (result.gps.isNotBlank()) result.gps else tempGps
+
+            tempCookie = newCookie
+            tempEnc = newEnc
+            tempEmpId = newEmpId
+            tempPassword = newPassword
+            tempGps = newGps
+
+            viewModel.saveSettings(
+                newEmpId,
+                newPassword,
+                newCookie,
+                newEnc,
+                newGps,
+                tempNotifyBefore,
+                tempNotifyOn
+            )
+        }
+    }
+
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -65,13 +94,7 @@ fun MobileSettingsScreen(
             try {
                 val inputStream = context.contentResolver.openInputStream(fileUri)
                 val content = inputStream?.bufferedReader()?.use { it.readText() } ?: ""
-                if (content.isNotBlank()) {
-                    val result = viewModel.importConfigFromText(content)
-                    if (result.cookie.isNotBlank()) tempCookie = result.cookie
-                    if (result.enc.isNotBlank()) tempEnc = result.enc
-                    if (result.empId.isNotBlank()) tempEmpId = result.empId
-                    if (result.password.isNotBlank()) tempPassword = result.password
-                }
+                applyAndSaveParsedConfig(content)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -87,7 +110,7 @@ fun MobileSettingsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Title & File Import
+        // Title & File / Paste Import Buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -100,13 +123,30 @@ fun MobileSettingsScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            OutlinedButton(
-                onClick = { filePickerLauncher.launch("*/*") },
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("匯入設定檔", style = MaterialTheme.typography.labelMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                        val clipText = clipboard?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                        applyAndSaveParsedConfig(clipText)
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("貼上", style = MaterialTheme.typography.labelMedium)
+                }
+
+                OutlinedButton(
+                    onClick = { filePickerLauncher.launch("*/*") },
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("匯入", style = MaterialTheme.typography.labelMedium)
+                }
             }
         }
 

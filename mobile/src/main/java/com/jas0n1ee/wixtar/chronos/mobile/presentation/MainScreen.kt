@@ -76,7 +76,7 @@ fun MainScreen(viewModel: MobileClockViewModel) {
                 NavigationBarItem(
                     selected = selectedTab == MobileTab.PUNCH_CARD,
                     onClick = { selectedTab = MobileTab.PUNCH_CARD },
-                    icon = { Icon(painterResource(id = R.drawable.ic_briefcase_clock), contentDescription = null) },
+                    icon = { Icon(painterResource(id = R.drawable.ic_cloud_clock), contentDescription = null) },
                     label = { Text(MobileTab.PUNCH_CARD.title) }
                 )
                 NavigationBarItem(

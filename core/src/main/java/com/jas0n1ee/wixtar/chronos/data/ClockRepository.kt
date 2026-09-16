@@ -37,6 +37,19 @@ class ClockRepository(private val storage: AppStorage) {
         enc: String,
         gps: String
     ): Result<String> = withContext(Dispatchers.IO) {
+        val trimmedId = empId.trim()
+        val trimmedPass = pass.trim()
+        val trimmedCookie = cookie.trim()
+        val trimmedEnc = enc.trim()
+        val trimmedGps = gps.trim()
+
+        if (trimmedId.isBlank() || trimmedPass.isBlank() || trimmedCookie.isBlank() || trimmedEnc.isBlank()) {
+            return@withContext Result.failure(
+                Exception("打卡失敗：請先至 [系統設定] 完整填寫工號、密碼、Cookie 及 enc")
+            )
+        }
+
+        Log.d("ClockRepository", "clockIn called: empId=$trimmedId, passLength=${trimmedPass.length}, cookieLength=${trimmedCookie.length}, encLength=${trimmedEnc.length}, gps=$trimmedGps")
         val formBody = FormBody.Builder()
             .add("em_step", "ajax")
             .add("encodeURIComponent", "1")
@@ -46,18 +59,18 @@ class ClockRepository(private val storage: AppStorage) {
             .add("buttonlink", "Ajax(No refresh Browser)")
             .add("em_POSITION", "1")
             .add("file", "hrm8w.pkg,hrm8bw.pkg")
-            .add("enc", enc)
+            .add("enc", trimmedEnc)
             .add("ITEM", "A")
-            .add("EMPID", empId)
-            .add("PASS", pass)
+            .add("EMPID", trimmedId)
+            .add("PASS", trimmedPass)
             .add("qCPNYID", "lafresh")
-            .add("GPSADDR", gps)
+            .add("GPSADDR", trimmedGps)
             .build()
 
         val request = Request.Builder()
             .url("https://hr.wixtar.com/servlet/jform")
             .header("Content-Type", "application/x-www-form-urlencoded")
-            .header("Cookie", cookie)
+            .header("Cookie", trimmedCookie)
             .header("Referer", "https://hr.wixtar.com/servlet/jform?file=hrm8w.pkg,hrm8bw.pkg&locale=TW&init_func=B3.8.%E7%B7%9A%E4%B8%8A%E7%B0%BD%E5%88%B0%E7%B0%BD%E9%80%80")
             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36")
             .post(formBody)
@@ -76,11 +89,19 @@ class ClockRepository(private val storage: AppStorage) {
                 }
             }
 
-            if (body.contains("打卡成功")) {
-                val timeMatch = Pattern.compile("時間 (\\d{4})").matcher(body)
+            Log.d("ClockRepository", "clockIn response body: $body")
+
+            val isSuccess = body.contains("打卡成功") ||
+                    body.contains("刷卡成功") ||
+                    body.contains("簽到成功") ||
+                    body.contains("簽退成功") ||
+                    (body.contains("成功") && !body.contains("不成功") && !body.contains("失敗"))
+
+            if (isSuccess) {
+                val timeMatch = Pattern.compile("(?:時間| Time)[:\\s]*(\\d{2}:?\\d{2}|\\d{4})").matcher(body)
                 val timeStr = if (timeMatch.find()) {
-                    val raw = timeMatch.group(1)
-                    if (raw != null && raw.length >= 4) {
+                    val raw = timeMatch.group(1)?.replace(":", "") ?: ""
+                    if (raw.length >= 4) {
                         "${raw.substring(0, 2)}:${raw.substring(2, 4)}"
                     } else {
                         java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
@@ -92,13 +113,20 @@ class ClockRepository(private val storage: AppStorage) {
             } else {
                 val messageMatch = Pattern.compile("<Message>(.*?)</Message>", Pattern.DOTALL).matcher(body)
                 val errorMessage = if (messageMatch.find()) {
-                    messageMatch.group(1)?.trim() ?: "未知錯誤"
+                    val msg = messageMatch.group(1)?.trim() ?: "未知錯誤"
+                    "打卡失敗: $msg"
                 } else {
-                    "打卡失敗: " + body.replace(Regex("<[^>]*>"), "").take(30).trim()
+                    val cleanText = body.replace(Regex("<[^>]*>"), "").trim()
+                    if (cleanText.isNotBlank()) {
+                        "打卡失敗: " + cleanText.take(50)
+                    } else {
+                        "打卡失敗：伺服器回應異常，請檢查 Cookie 或 enc 是否正確/過期"
+                    }
                 }
                 Result.failure(Exception(errorMessage))
             }
         } catch (e: IOException) {
+            Log.e("ClockRepository", "clockIn exception", e)
             Result.failure(e)
         }
     }

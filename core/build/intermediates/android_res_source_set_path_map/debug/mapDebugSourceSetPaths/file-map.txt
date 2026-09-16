@@ -1,8 +1,8 @@
-com.jas0n1ee.wixtar.chronos.core-pngs-0 C:\Users\E0101\StudioProjects\WiXtarPunchCard\core\build\generated\res\pngs\debug
-com.jas0n1ee.wixtar.chronos.core-updated_navigation_xml-1 C:\Users\E0101\StudioProjects\WiXtarPunchCard\core\build\generated\updated_navigation_xml\debug
-com.jas0n1ee.wixtar.chronos.core-mergeDebugResources-2 C:\Users\E0101\StudioProjects\WiXtarPunchCard\core\build\intermediates\incremental\debug\mergeDebugResources\merged.dir
-com.jas0n1ee.wixtar.chronos.core-mergeDebugResources-3 C:\Users\E0101\StudioProjects\WiXtarPunchCard\core\build\intermediates\incremental\debug\mergeDebugResources\stripped.dir
-com.jas0n1ee.wixtar.chronos.core-debug-4 C:\Users\E0101\StudioProjects\WiXtarPunchCard\core\build\intermediates\merged_res\debug\mergeDebugResources
-com.jas0n1ee.wixtar.chronos.core-debug-5 C:\Users\E0101\StudioProjects\WiXtarPunchCard\core\build\intermediates\packaged_res\debug\packageDebugResources
-com.jas0n1ee.wixtar.chronos.core-debug-6 C:\Users\E0101\StudioProjects\WiXtarPunchCard\core\src\debug\res
-com.jas0n1ee.wixtar.chronos.core-main-7 C:\Users\E0101\StudioProjects\WiXtarPunchCard\core\src\main\res
+com.jas0n1ee.wixtar.chronos.core-pngs-0 C:\Users\jce12\WiXtarPunchCard\core\build\generated\res\pngs\debug
+com.jas0n1ee.wixtar.chronos.core-updated_navigation_xml-1 C:\Users\jce12\WiXtarPunchCard\core\build\generated\updated_navigation_xml\debug
+com.jas0n1ee.wixtar.chronos.core-mergeDebugResources-2 C:\Users\jce12\WiXtarPunchCard\core\build\intermediates\incremental\debug\mergeDebugResources\merged.dir
+com.jas0n1ee.wixtar.chronos.core-mergeDebugResources-3 C:\Users\jce12\WiXtarPunchCard\core\build\intermediates\incremental\debug\mergeDebugResources\stripped.dir
+com.jas0n1ee.wixtar.chronos.core-debug-4 C:\Users\jce12\WiXtarPunchCard\core\build\intermediates\merged_res\debug\mergeDebugResources
+com.jas0n1ee.wixtar.chronos.core-debug-5 C:\Users\jce12\WiXtarPunchCard\core\build\intermediates\packaged_res\debug\packageDebugResources
+com.jas0n1ee.wixtar.chronos.core-debug-6 C:\Users\jce12\WiXtarPunchCard\core\src\debug\res
+com.jas0n1ee.wixtar.chronos.core-main-7 C:\Users\jce12\WiXtarPunchCard\core\src\main\res

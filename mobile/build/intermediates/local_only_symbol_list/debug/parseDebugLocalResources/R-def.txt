@@ -1,0 +1,16 @@
+R_DEF: Internal format may change without notice
+local
+drawable ic_briefcase_clock
+id widget_1x1_icon
+id widget_1x1_root
+id widget_4x1_root
+id widget_btn_punch
+id widget_text_clock_in
+id widget_text_clock_out
+layout widget_punch_1x1
+layout widget_punch_4x1
+mipmap ic_launcher
+mipmap ic_launcher_round
+style Theme.WiXtarCompanion
+xml widget_1x1_info
+xml widget_4x1_info

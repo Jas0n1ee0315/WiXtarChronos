@@ -1,0 +1,66 @@
+[
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/drawable_ic_briefcase_clock.xml.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/drawable/ic_briefcase_clock.xml"
+    },
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\E0101\\.gradle\\daemon\\9.3.1\\com.jas0n1ee.wixtar.chronos.mobile-debug-64:\\xml_widget_4x1_info.xml.flat",
+        "source": "C:\\Users\\E0101\\.gradle\\daemon\\9.3.1\\com.jas0n1ee.wixtar.chronos.mobile-main-66:\\xml\\widget_4x1_info.xml"
+    },
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\E0101\\.gradle\\daemon\\9.3.1\\com.jas0n1ee.wixtar.chronos.mobile-debug-64:\\layout_widget_punch_1x1.xml.flat",
+        "source": "C:\\Users\\E0101\\.gradle\\daemon\\9.3.1\\com.jas0n1ee.wixtar.chronos.mobile-main-66:\\layout\\widget_punch_1x1.xml"
+    },
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/layout_widget_punch_1x1.xml.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/layout/widget_punch_1x1.xml"
+    },
+    {
+        "merged": "C:\\Users\\E0101\\.gradle\\daemon\\9.3.1\\com.jas0n1ee.wixtar.chronos.mobile-debug-64:\\layout_widget_punch_4x1.xml.flat",
+        "source": "C:\\Users\\E0101\\.gradle\\daemon\\9.3.1\\com.jas0n1ee.wixtar.chronos.mobile-main-66:\\layout\\widget_punch_4x1.xml"
+    },
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/mipmap-xxxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\E0101\\.gradle\\daemon\\9.3.1\\com.jas0n1ee.wixtar.chronos.mobile-debug-64:\\xml_widget_1x1_info.xml.flat",
+        "source": "C:\\Users\\E0101\\.gradle\\daemon\\9.3.1\\com.jas0n1ee.wixtar.chronos.mobile-main-66:\\xml\\widget_1x1_info.xml"
+    },
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.jas0n1ee.wixtar.chronos.mobile-debug-64:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.jas0n1ee.wixtar.chronos.mobile-main-66:/mipmap-xhdpi/ic_launcher.png"
+    }
+]

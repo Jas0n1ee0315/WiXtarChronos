@@ -1,7 +1,0 @@
-com.jas0n1ee.wixtar.chronos.mobile-pngs-0 C:\Users\jce12\WiXtarPunchCard\mobile\build\generated\res\pngs\debug
-com.jas0n1ee.wixtar.chronos.mobile-updated_navigation_xml-1 C:\Users\jce12\WiXtarPunchCard\mobile\build\generated\updated_navigation_xml\debug
-com.jas0n1ee.wixtar.chronos.mobile-packageDebugResources-2 C:\Users\jce12\WiXtarPunchCard\mobile\build\intermediates\incremental\debug\packageDebugResources\merged.dir
-com.jas0n1ee.wixtar.chronos.mobile-packageDebugResources-3 C:\Users\jce12\WiXtarPunchCard\mobile\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
-com.jas0n1ee.wixtar.chronos.mobile-debug-4 C:\Users\jce12\WiXtarPunchCard\mobile\build\intermediates\merged_res\debug\mergeDebugResources
-com.jas0n1ee.wixtar.chronos.mobile-debug-5 C:\Users\jce12\WiXtarPunchCard\mobile\src\debug\res
-com.jas0n1ee.wixtar.chronos.mobile-main-6 C:\Users\jce12\WiXtarPunchCard\mobile\src\main\res

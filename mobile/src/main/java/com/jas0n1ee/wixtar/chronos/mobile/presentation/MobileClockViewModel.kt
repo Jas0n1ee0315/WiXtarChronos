@@ -10,7 +10,6 @@ import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
 import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
-import com.jas0n1ee.wixtar.chronos.mobile.worker.DailyResetWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,20 +31,27 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     val cookie = storage.cookie.stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val enc = storage.enc.stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val gpsLocation = storage.gpsLocation.stateIn(viewModelScope, SharingStarted.Eagerly, "22.987929,120.197210")
-    val notifyBeforeOffWork = storage.notifyBeforeOffWork.stateIn(viewModelScope, SharingStarted.Eagerly, true)
-    val notifyOnOffWork = storage.notifyOnOffWork.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val notifyBeforeOffWork = storage.notifyBeforeOffWork.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val notifyOnOffWork = storage.notifyOnOffWork.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val notifyAdvanceMinutes = storage.notifyAdvanceMinutes.stateIn(viewModelScope, SharingStarted.Eagerly, 10)
+    val useLiveUpdates = storage.useLiveUpdates.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val enableWatchSync = storage.enableWatchSync.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val forgetClockOutNotifyEnabled = storage.forgetClockOutNotifyEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val forgetClockOutNotifyTime = storage.forgetClockOutNotifyTime.stateIn(viewModelScope, SharingStarted.Eagerly, "18:30")
+
+    val fishOilNotifyEnabled = storage.fishOilNotifyEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val fishOilNotifyTime = storage.fishOilNotifyTime.stateIn(viewModelScope, SharingStarted.Eagerly, "13:10")
+    val fishOilNotifyDays = storage.fishOilNotifyDays.stateIn(viewModelScope, SharingStarted.Eagerly, "1,2,3,4,5,6,7")
 
     private val _cloudInTime = MutableStateFlow<String?>(null)
     private val _cloudOutTime = MutableStateFlow<String?>(null)
-    private val _cloudRawJson = MutableStateFlow<String>("")
 
     private val _isHrSystemNormal = MutableStateFlow<Boolean?>(null)
     val isHrSystemNormal: StateFlow<Boolean?> = _isHrSystemNormal
 
     val cloudInTime: StateFlow<String?> = _cloudInTime
     val cloudOutTime: StateFlow<String?> = _cloudOutTime
-    val cloudRawJson: StateFlow<String> = _cloudRawJson
 
     val clockInTime: StateFlow<String?> = combine(_cloudInTime, storage.clockInTime) { cloud, local ->
         when {
@@ -83,7 +89,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
             storage.clearClockDataIfExpired()
             checkConnectedWearables()
             checkHrHealth()
-            DailyResetWorker.scheduleDailyReset(getApplication())
             
             cookie.collect { ck ->
                 if (ck.isNotBlank()) {
@@ -126,10 +131,9 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
             checkHrHealth()
             val ck = storage.cookie.first().trim()
             if (ck.isNotBlank()) {
-                repository.getCloudClockInfo(ck).onSuccess { (cloudIn, cloudOut, rawJson) ->
+                repository.getCloudClockInfo(ck).onSuccess { (cloudIn, cloudOut, _) ->
                     _cloudInTime.value = cloudIn
                     _cloudOutTime.value = cloudOut
-                    _cloudRawJson.value = rawJson
 
                     cloudIn?.let { storage.saveClockIn(it) }
                     cloudOut?.let { storage.saveClockOut(it) }
@@ -141,8 +145,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 }.onFailure { e ->
                     _error.value = "雲端同步失敗: ${e.message}"
                 }
-            } else {
-                _error.value = "未設定 Cookie，請至設定頁填寫"
             }
             _isRefreshing.value = false
         }
@@ -155,7 +157,14 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         encVal: String,
         gpsVal: String,
         notifyBeforeVal: Boolean,
-        notifyOnVal: Boolean
+        notifyOnVal: Boolean,
+        advanceMinutesVal: Int = 10,
+        useLiveUpdatesVal: Boolean = false,
+        forgetClockOutEnabledVal: Boolean = false,
+        forgetClockOutTimeVal: String = "18:30",
+        fishOilEnabledVal: Boolean = false,
+        fishOilTimeVal: String = "13:10",
+        fishOilDaysVal: String = "1,2,3,4,5,6,7"
     ) {
         viewModelScope.launch {
             storage.saveSettings(
@@ -165,8 +174,23 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 encVal,
                 gpsVal,
                 notifyBeforeVal,
-                notifyOnVal
+                notifyOnVal,
+                advanceMinutesVal,
+                useLiveUpdatesVal,
+                forgetClockOutEnabledVal,
+                forgetClockOutTimeVal,
+                fishOilEnabledVal,
+                fishOilTimeVal,
+                fishOilDaysVal
             )
+
+            if (forgetClockOutEnabledVal) {
+                notificationHelper.scheduleForgetClockOutReminders(forgetClockOutTimeVal)
+            }
+
+            if (fishOilEnabledVal) {
+                notificationHelper.scheduleFishOilReminders(fishOilTimeVal, fishOilDaysVal)
+            }
 
             if (enableWatchSync.value) {
                 WearableSyncManager.syncSettings(
@@ -180,22 +204,18 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     notifyOn = notifyOnVal
                 )
             }
-
-            _message.value = "設定已完成儲存"
-            fetchCloudData()
         }
     }
 
     fun importConfigFromText(content: String): ConfigParseResult {
-        var empIdParsed = ""
-        var passParsed = ""
         var cookieParsed = ""
         var encParsed = ""
+        var empIdParsed = ""
+        var passParsed = ""
         var gpsParsed = ""
 
         val trimmedContent = content.trim()
 
-        // 1. Try parsing JSON
         if ((trimmedContent.startsWith("{") && trimmedContent.endsWith("}")) ||
             (trimmedContent.startsWith("[") && trimmedContent.endsWith("]"))) {
             try {
@@ -210,11 +230,9 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 encParsed = json.optString("enc").ifBlank { json.optString("ENC") }
                 gpsParsed = json.optString("gps").ifBlank { json.optString("GPS").ifBlank { json.optString("gpsLocation") } }
             } catch (e: Exception) {
-                // Ignore JSON parse error and fallback to line parser
             }
         }
 
-        // 2. Line-by-line parsing
         if (cookieParsed.isBlank() || encParsed.isBlank() || empIdParsed.isBlank() || passParsed.isBlank()) {
             val lines = content.lines()
             val cookieBuilder = StringBuilder()
@@ -226,7 +244,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 if (trimmed.isBlank()) continue
                 val lower = trimmed.lowercase()
 
-                // EMPID check
                 if (lower.startsWith("empid") || lower.startsWith("emp_id") || lower.startsWith("emp") || lower.contains("工號")) {
                     if (trimmed.contains(":") || trimmed.contains("=")) {
                         val valStr = trimmed.substringAfter(":", "").substringAfter("=", "").trim()
@@ -240,7 +257,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     }
                 }
 
-                // PASS check
                 if (lower.startsWith("password") || lower.startsWith("pass") || lower.contains("密碼")) {
                     if (trimmed.contains(":") || trimmed.contains("=")) {
                         val valStr = trimmed.substringAfter(":", "").substringAfter("=", "").trim()
@@ -254,7 +270,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     }
                 }
 
-                // GPS check
                 if (lower.startsWith("gps") || lower.contains("座標")) {
                     if (trimmed.contains(":") || trimmed.contains("=")) {
                         val valStr = trimmed.substringAfter(":", "").substringAfter("=", "").trim()
@@ -265,7 +280,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     }
                 }
 
-                // COOKIE check
                 if (lower.startsWith("cookie") || lower.contains("cookie:")) {
                     if (trimmed.contains(":") || trimmed.contains("=")) {
                         val valStr = if (trimmed.contains(":")) trimmed.substringAfter(":").trim() else trimmed.substringAfter("=").trim()
@@ -278,7 +292,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     continue
                 }
 
-                // ENC check
                 if ((lower.startsWith("enc") || lower.contains("enc:")) && !lower.contains("encode")) {
                     if (trimmed.contains(":") || trimmed.contains("=")) {
                         val valStr = if (trimmed.contains(":")) trimmed.substringAfter(":").trim() else trimmed.substringAfter("=").trim()
@@ -291,10 +304,13 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     continue
                 }
 
-                // Section content fallback
                 when (currentSection) {
-                    "EMPID" -> if (empIdParsed.isBlank()) { empIdParsed = trimmed; currentSection = "" }
-                    "PASS" -> if (passParsed.isBlank()) { passParsed = trimmed; currentSection = "" }
+                    "EMPID" -> {
+                        if (empIdParsed.isBlank()) empIdParsed = trimmed
+                    }
+                    "PASS" -> {
+                        if (passParsed.isBlank()) passParsed = trimmed
+                    }
                     "COOKIE" -> {
                         if (cookieBuilder.isNotEmpty()) cookieBuilder.append("\n")
                         cookieBuilder.append(trimmed)
@@ -306,10 +322,10 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 }
             }
 
-            if (cookieParsed.isBlank() && cookieBuilder.isNotBlank()) {
+            if (cookieBuilder.isNotEmpty() && cookieParsed.isBlank()) {
                 cookieParsed = cookieBuilder.toString().trim()
             }
-            if (encParsed.isBlank() && encBuilder.isNotBlank()) {
+            if (encBuilder.isNotEmpty() && encParsed.isBlank()) {
                 encParsed = encBuilder.toString().trim()
             }
         }
@@ -383,7 +399,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
             }
 
             val currentIn = clockInTime.value
-
             val isClockingInAction = currentIn.isNullOrBlank()
 
             val result = repository.clockIn(id, pass, ck, en, gps)
@@ -391,10 +406,11 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 val time = result.getOrNull() ?: ""
                 if (isClockingInAction) {
                     storage.saveClockIn(time)
-                    notificationHelper.scheduleReminders(time)
+                    notificationHelper.scheduleReminders(time, notifyAdvanceMinutes.value, useLiveUpdates.value)
                     _message.value = "打卡成功: 上班卡 ($time)"
                 } else {
                     storage.saveClockOut(time)
+                    notificationHelper.cancelLiveUpdateNotification()
                     _message.value = "打卡成功: 下班卡 ($time)"
                 }
 
@@ -416,6 +432,22 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun canScheduleExactAlarms(): Boolean {
+        return notificationHelper.canScheduleExactAlarms()
+    }
+
+    fun openExactAlarmSettings() {
+        notificationHelper.openExactAlarmSettings()
+    }
+
+    fun isIgnoringBatteryOptimizations(): Boolean {
+        return notificationHelper.isIgnoringBatteryOptimizations()
+    }
+
+    fun requestIgnoreBatteryOptimizations() {
+        notificationHelper.requestIgnoreBatteryOptimizations()
+    }
+
     fun clearError() {
         _error.value = null
     }
@@ -430,5 +462,5 @@ data class ConfigParseResult(
     val enc: String,
     val empId: String,
     val password: String,
-    val gps: String = ""
+    val gps: String
 )

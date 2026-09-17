@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MyLocation
@@ -54,6 +55,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.MobileClockViewModel
+import com.jas0n1ee.wixtar.chronos.mobile.shortcut.AssistantShortcutManager
 
 enum class SettingsSubCategory(val title: String) {
     MAIN("系統設定"),
@@ -113,6 +115,12 @@ fun MobileSettingsScreen(
     val fishOilTime by viewModel.fishOilNotifyTime.collectAsState()
     val fishOilDays by viewModel.fishOilNotifyDays.collectAsState()
 
+    val autoClockIn by viewModel.autoClockInEnabled.collectAsState()
+    val workStart by viewModel.workStartTime.collectAsState()
+    val flexibleClockIn by viewModel.flexibleClockInEnabled.collectAsState()
+    val flexibleEnd by viewModel.flexibleEndTime.collectAsState()
+    val autoClockOut by viewModel.autoClockOutEnabled.collectAsState()
+
     var tempEmpId by remember(empId) { mutableStateOf(empId) }
     var tempPassword by remember(password) { mutableStateOf(password) }
     var tempCookie by remember(cookie) { mutableStateOf(cookie) }
@@ -130,11 +138,17 @@ fun MobileSettingsScreen(
     var tempFishOilTime by remember(fishOilTime) { mutableStateOf(fishOilTime) }
     var tempFishOilDays by remember(fishOilDays) { mutableStateOf(fishOilDays) }
 
+    var tempAutoClockIn by remember(autoClockIn) { mutableStateOf(autoClockIn) }
+    var tempWorkStart by remember(workStart) { mutableStateOf(workStart) }
+    var tempFlexibleClockIn by remember(flexibleClockIn) { mutableStateOf(flexibleClockIn) }
+    var tempFlexibleEnd by remember(flexibleEnd) { mutableStateOf(flexibleEnd) }
+    var tempAutoClockOut by remember(autoClockOut) { mutableStateOf(autoClockOut) }
+
     var isPasswordVisible by remember { mutableStateOf(false) }
     var advanceDropdownExpanded by remember { mutableStateOf(false) }
     
     var showTimePickerDialog by remember { mutableStateOf(false) }
-    var activeTimePickerTarget by remember { mutableStateOf("FISH_OIL") } // "FISH_OIL" or "FORGET_CLOCK_OUT"
+    var activeTimePickerTarget by remember { mutableStateOf("FISH_OIL") } // "FISH_OIL", "FORGET_CLOCK_OUT", "WORK_START", "FLEXIBLE_END"
 
     var showPowerWarningDialog by remember { mutableStateOf(false) }
     var showBatteryOptimizationDialog by remember { mutableStateOf(false) }
@@ -154,13 +168,19 @@ fun MobileSettingsScreen(
         forgetClockOutTimeVal: String = tempForgetClockOutTime,
         fishOilEnabledVal: Boolean = tempFishOilEnabled,
         fishOilTimeVal: String = tempFishOilTime,
-        fishOilDaysVal: String = tempFishOilDays
+        fishOilDaysVal: String = tempFishOilDays,
+        autoClockInVal: Boolean = tempAutoClockIn,
+        workStartVal: String = tempWorkStart,
+        flexibleClockInVal: Boolean = tempFlexibleClockIn,
+        flexibleEndVal: String = tempFlexibleEnd,
+        autoClockOutVal: Boolean = tempAutoClockOut
     ) {
         viewModel.saveSettings(
             empIdVal, passVal, cookieVal, encVal, gpsVal,
             notifyBeforeVal, notifyOnVal, advanceMinutesVal, useLiveUpdatesVal,
             forgetClockOutEnabledVal, forgetClockOutTimeVal,
-            fishOilEnabledVal, fishOilTimeVal, fishOilDaysVal
+            fishOilEnabledVal, fishOilTimeVal, fishOilDaysVal,
+            autoClockInVal, workStartVal, flexibleClockInVal, workStartVal, flexibleEndVal, autoClockOutVal
         )
     }
 
@@ -203,12 +223,30 @@ fun MobileSettingsScreen(
         }
     }
 
-    // TimePicker Dialog for Fish Oil or Forget Clock Out
+    // TimePicker Dialog
     if (showTimePickerDialog) {
-        val currentTimeStr = if (activeTimePickerTarget == "FISH_OIL") tempFishOilTime else tempForgetClockOutTime
+        val currentTimeStr = when (activeTimePickerTarget) {
+            "FISH_OIL" -> tempFishOilTime
+            "FORGET_CLOCK_OUT" -> tempForgetClockOutTime
+            "WORK_START" -> tempWorkStart
+            "FLEXIBLE_END" -> tempFlexibleEnd
+            else -> "08:30"
+        }
         val initialParts = currentTimeStr.split(":")
-        val defaultHour = if (activeTimePickerTarget == "FISH_OIL") 13 else 18
-        val defaultMinute = if (activeTimePickerTarget == "FISH_OIL") 10 else 30
+        val defaultHour = when (activeTimePickerTarget) {
+            "FISH_OIL" -> 13
+            "FORGET_CLOCK_OUT" -> 18
+            "WORK_START" -> 8
+            "FLEXIBLE_END" -> 9
+            else -> 8
+        }
+        val defaultMinute = when (activeTimePickerTarget) {
+            "FISH_OIL" -> 10
+            "FORGET_CLOCK_OUT" -> 30
+            "WORK_START" -> 30
+            "FLEXIBLE_END" -> 30
+            else -> 30
+        }
         val initialHour = initialParts.getOrNull(0)?.toIntOrNull() ?: defaultHour
         val initialMinute = initialParts.getOrNull(1)?.toIntOrNull() ?: defaultMinute
         val timePickerState = rememberTimePickerState(
@@ -222,13 +260,35 @@ fun MobileSettingsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showTimePickerDialog = false
-                    val formatted = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
-                    if (activeTimePickerTarget == "FISH_OIL") {
-                        tempFishOilTime = formatted
-                        autoSave(fishOilTimeVal = formatted)
-                    } else {
-                        tempForgetClockOutTime = formatted
-                        autoSave(forgetClockOutTimeVal = formatted)
+                    var hour = timePickerState.hour
+                    var minute = timePickerState.minute
+
+                    // Capped at 09:30 for FLEXIBLE_END
+                    if (activeTimePickerTarget == "FLEXIBLE_END") {
+                        if (hour > 9 || (hour == 9 && minute > 30)) {
+                            hour = 9
+                            minute = 30
+                        }
+                    }
+
+                    val formatted = String.format("%02d:%02d", hour, minute)
+                    when (activeTimePickerTarget) {
+                        "FISH_OIL" -> {
+                            tempFishOilTime = formatted
+                            autoSave(fishOilTimeVal = formatted)
+                        }
+                        "FORGET_CLOCK_OUT" -> {
+                            tempForgetClockOutTime = formatted
+                            autoSave(forgetClockOutTimeVal = formatted)
+                        }
+                        "WORK_START" -> {
+                            tempWorkStart = formatted
+                            autoSave(workStartVal = formatted)
+                        }
+                        "FLEXIBLE_END" -> {
+                            tempFlexibleEnd = formatted
+                            autoSave(flexibleEndVal = formatted)
+                        }
                     }
                 }) {
                     Text("確定")
@@ -877,25 +937,183 @@ fun MobileSettingsScreen(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            // 1. 自動打上班卡 Switch
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("開啟工作日自動打卡", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                                    Text("系統將於指定時間嘗試自動完成簽到/簽退", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("自動打上班卡", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                    Text("於指定工作日時間進行背景自動簽到打卡", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                Switch(checked = false, onCheckedChange = {})
+                                Switch(
+                                    checked = tempAutoClockIn,
+                                    onCheckedChange = { checked ->
+                                        tempAutoClockIn = checked
+                                        autoSave(autoClockInVal = checked)
+                                        if (checked && !isIgnoringBattery) {
+                                            showBatteryOptimizationDialog = true
+                                        }
+                                    }
+                                )
+                            }
+
+                            // 2. 設定上班時間 TimePicker
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "設定上班時間",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (tempAutoClockIn) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                                Surface(
+                                    onClick = {
+                                        if (tempAutoClockIn) {
+                                            activeTimePickerTarget = "WORK_START"
+                                            showTimePickerDialog = true
+                                        }
+                                    },
+                                    enabled = tempAutoClockIn,
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (tempAutoClockIn) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Schedule,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = if (tempAutoClockIn) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = tempWorkStart,
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (tempAutoClockIn) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                }
                             }
 
                             HorizontalDivider()
 
-                            Text(
-                                text = "自動打卡功能將配合系統背景 Job 排程與推播提醒運作，可在指定上班/下班時間前自動發送 HTTP 打卡請求。",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            // 3. 彈性時間打上班卡 Switch
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "彈性時間打上班卡",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (tempAutoClockIn) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                    Text(
+                                        text = "可設定彈性時間來打卡，模擬每天不固定時間上班",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (tempAutoClockIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                }
+                                Switch(
+                                    checked = tempFlexibleClockIn && tempAutoClockIn,
+                                    enabled = tempAutoClockIn,
+                                    onCheckedChange = { checked ->
+                                        tempFlexibleClockIn = checked
+                                        autoSave(flexibleClockInVal = checked)
+                                    }
+                                )
+                            }
+
+                            // 4. 彈性時間範圍 TimePickers (Range)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "彈性時間範圍",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (tempAutoClockIn && tempFlexibleClockIn) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    // Start Time (read-only, mirrors tempWorkStart)
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = MaterialTheme.colorScheme.surfaceContainerHigh
+                                    ) {
+                                        Text(
+                                            text = tempWorkStart,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                            color = if (tempAutoClockIn && tempFlexibleClockIn) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                    }
+
+                                    Text("~", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+                                    // End Time (capped at 09:30)
+                                    Surface(
+                                        onClick = {
+                                            if (tempAutoClockIn && tempFlexibleClockIn) {
+                                                activeTimePickerTarget = "FLEXIBLE_END"
+                                                showTimePickerDialog = true
+                                            }
+                                        },
+                                        enabled = tempAutoClockIn && tempFlexibleClockIn,
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = if (tempAutoClockIn && tempFlexibleClockIn) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer
+                                    ) {
+                                        Text(
+                                            text = tempFlexibleEnd,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                            color = if (tempAutoClockIn && tempFlexibleClockIn) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                }
+                            }
+
+                            HorizontalDivider()
+
+                            // 5. 自動打下班卡 Switch
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("自動打下班卡", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                    Text("根據上班卡時間自動加9小時來打下班卡，將關閉「可下班通知」", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = tempAutoClockOut,
+                                    onCheckedChange = { checked ->
+                                        tempAutoClockOut = checked
+                                        if (checked) {
+                                            tempNotifyOn = false
+                                        }
+                                        autoSave(autoClockOutVal = checked, notifyOnVal = tempNotifyOn)
+                                        if (checked && !isIgnoringBattery) {
+                                            showBatteryOptimizationDialog = true
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }

@@ -11,15 +11,19 @@ import com.jas0n1ee.wixtar.chronos.data.ClockRepository
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
 import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.LocalDate
 
 class MobileClockViewModel(application: Application) : AndroidViewModel(application) {
     private val storage = AppStorage(application)
@@ -44,27 +48,51 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     val fishOilNotifyTime = storage.fishOilNotifyTime.stateIn(viewModelScope, SharingStarted.Eagerly, "13:10")
     val fishOilNotifyDays = storage.fishOilNotifyDays.stateIn(viewModelScope, SharingStarted.Eagerly, "1,2,3,4,5,6,7")
 
+    val autoClockInEnabled = storage.autoClockInEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val workStartTime = storage.workStartTime.stateIn(viewModelScope, SharingStarted.Eagerly, "08:30")
+    val flexibleClockInEnabled = storage.flexibleClockInEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val flexibleStartTime = storage.flexibleStartTime.stateIn(viewModelScope, SharingStarted.Eagerly, "08:30")
+    val flexibleEndTime = storage.flexibleEndTime.stateIn(viewModelScope, SharingStarted.Eagerly, "09:30")
+    val autoClockOutEnabled = storage.autoClockOutEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val autoPunchPauseDays = storage.autoPunchPauseDays.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
     private val _cloudInTime = MutableStateFlow<String?>(null)
     private val _cloudOutTime = MutableStateFlow<String?>(null)
+    private val _cloudDate = MutableStateFlow<String?>(null)
 
     private val _isHrSystemNormal = MutableStateFlow<Boolean?>(null)
     val isHrSystemNormal: StateFlow<Boolean?> = _isHrSystemNormal
 
+    private val _hrRetryCountdown = MutableStateFlow(3)
+    val hrRetryCountdown: StateFlow<Int> = _hrRetryCountdown
+
+    private var hrRetryJob: Job? = null
+
     val cloudInTime: StateFlow<String?> = _cloudInTime
     val cloudOutTime: StateFlow<String?> = _cloudOutTime
 
-    val clockInTime: StateFlow<String?> = combine(_cloudInTime, storage.clockInTime) { cloud, local ->
+    val clockInTime: StateFlow<String?> = combine(_cloudInTime, storage.clockInTime, _cloudDate) { cloud, local, cloudDate ->
+        val today = LocalDate.now().toString()
+        val validCloud = if (cloudDate == today) cloud else null
+        val cleanCloud = validCloud?.substringBefore(" ")?.take(5)
+        val cleanLocal = local?.take(5)
+
         when {
-            !cloud.isNullOrBlank() -> "$cloud (雲端)"
-            !local.isNullOrBlank() -> "$local (本地)"
+            !cleanCloud.isNullOrBlank() -> "$cleanCloud (雲端)"
+            !cleanLocal.isNullOrBlank() -> "$cleanLocal (本地)"
             else -> null
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val clockOutTime: StateFlow<String?> = combine(_cloudOutTime, storage.clockOutTime) { cloud, local ->
+    val clockOutTime: StateFlow<String?> = combine(_cloudOutTime, storage.clockOutTime, _cloudDate) { cloud, local, cloudDate ->
+        val today = LocalDate.now().toString()
+        val validCloud = if (cloudDate == today) cloud else null
+        val cleanCloud = validCloud?.substringBefore(" ")?.take(5)
+        val cleanLocal = local?.take(5)
+
         when {
-            !cloud.isNullOrBlank() -> "$cloud (雲端)"
-            !local.isNullOrBlank() -> "$local (本地)"
+            !cleanCloud.isNullOrBlank() -> "$cleanCloud (雲端)"
+            !cleanLocal.isNullOrBlank() -> "$cleanLocal (本地)"
             else -> null
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -98,9 +126,39 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun startHrHealthRetryLoop() {
+        if (hrRetryJob?.isActive == true) return
+        hrRetryJob = viewModelScope.launch {
+            while (isActive) {
+                val isNormal = repository.checkHrSystemHealth()
+                _isHrSystemNormal.value = isNormal
+                if (isNormal) {
+                    _hrRetryCountdown.value = 3
+                    break
+                }
+
+                for (seconds in 3 downTo 1) {
+                    _hrRetryCountdown.value = seconds
+                    delay(1000L)
+                    if (!isActive) return@launch
+                }
+                _hrRetryCountdown.value = 0
+            }
+        }
+    }
+
+    fun stopHrHealthRetryLoop() {
+        hrRetryJob?.cancel()
+        hrRetryJob = null
+    }
+
     fun checkHrHealth() {
         viewModelScope.launch {
-            _isHrSystemNormal.value = repository.checkHrSystemHealth()
+            val isNormal = repository.checkHrSystemHealth()
+            _isHrSystemNormal.value = isNormal
+            if (!isNormal) {
+                startHrHealthRetryLoop()
+            }
         }
     }
 
@@ -125,15 +183,36 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun checkAndClearExpiredClockData() {
+        viewModelScope.launch {
+            val today = LocalDate.now().toString()
+            val lastDate = storage.lastClockDate.first()
+
+            if (lastDate != null && lastDate != today) {
+                Log.d("MobileClockViewModel", "Detected expired clock data from date: $lastDate (today: $today). Clearing...")
+                _cloudInTime.value = null
+                _cloudOutTime.value = null
+                _cloudDate.value = null
+                storage.clearClockDataIfExpired()
+            } else if (_cloudDate.value != null && _cloudDate.value != today) {
+                _cloudInTime.value = null
+                _cloudOutTime.value = null
+                _cloudDate.value = null
+            }
+        }
+    }
+
     fun fetchCloudData() {
         viewModelScope.launch {
             _isRefreshing.value = true
             checkHrHealth()
+            checkAndClearExpiredClockData()
             val ck = storage.cookie.first().trim()
             if (ck.isNotBlank()) {
                 repository.getCloudClockInfo(ck).onSuccess { (cloudIn, cloudOut, _) ->
                     _cloudInTime.value = cloudIn
                     _cloudOutTime.value = cloudOut
+                    _cloudDate.value = LocalDate.now().toString()
 
                     cloudIn?.let { storage.saveClockIn(it) }
                     cloudOut?.let { storage.saveClockOut(it) }
@@ -164,7 +243,13 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         forgetClockOutTimeVal: String = "18:30",
         fishOilEnabledVal: Boolean = false,
         fishOilTimeVal: String = "13:10",
-        fishOilDaysVal: String = "1,2,3,4,5,6,7"
+        fishOilDaysVal: String = "1,2,3,4,5,6,7",
+        autoClockInVal: Boolean = false,
+        workStartVal: String = "08:30",
+        flexibleClockInVal: Boolean = false,
+        flexibleStartVal: String = "08:30",
+        flexibleEndVal: String = "09:30",
+        autoClockOutVal: Boolean = false
     ) {
         viewModelScope.launch {
             storage.saveSettings(
@@ -181,8 +266,16 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 forgetClockOutTimeVal,
                 fishOilEnabledVal,
                 fishOilTimeVal,
-                fishOilDaysVal
+                fishOilDaysVal,
+                autoClockInVal,
+                workStartVal,
+                flexibleClockInVal,
+                workStartVal, // flexibleStart mirrors workStart
+                flexibleEndVal,
+                autoClockOutVal
             )
+
+            com.jas0n1ee.wixtar.chronos.mobile.worker.AutoPunchScheduler.scheduleAutoPunch(getApplication())
 
             if (forgetClockOutEnabledVal) {
                 notificationHelper.scheduleForgetClockOutReminders(forgetClockOutTimeVal)
@@ -204,6 +297,12 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     notifyOn = notifyOnVal
                 )
             }
+        }
+    }
+
+    fun saveAutoPunchPauseDays(daysCsv: String) {
+        viewModelScope.launch {
+            storage.saveAutoPunchPauseDays(daysCsv)
         }
     }
 

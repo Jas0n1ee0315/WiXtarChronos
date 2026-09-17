@@ -14,6 +14,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
+import com.jas0n1ee.wixtar.chronos.data.ClockRepository
 import com.jas0n1ee.wixtar.chronos.mobile.R
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity
 import kotlinx.coroutines.CoroutineScope
@@ -272,6 +273,41 @@ class MobileNotificationHelper(private val context: Context) {
         manager.cancel(LIVE_UPDATE_NOTIFICATION_ID)
     }
 
+    fun sendManualPunchNotification(title: String, message: String) {
+        try {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            val intent = Intent(context, NotificationReceiver::class.java).apply {
+                action = NotificationReceiver.ACTION_MANUAL_PUNCH_CARD
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                199,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+            val action = NotificationCompat.Action.Builder(
+                R.drawable.ic_cloud_clock,
+                "手動打卡",
+                pendingIntent
+            ).build()
+
+            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_cloud_clock)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .addAction(action)
+                .build()
+
+            manager.notify(System.currentTimeMillis().toInt(), notification)
+        } catch (e: Exception) {
+            Log.e("MobileNotificationHelper", "Failed to send manual punch notification", e)
+        }
+    }
+
     fun sendNotification(title: String, message: String, notificationId: Int = System.currentTimeMillis().toInt()) {
         try {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -325,47 +361,91 @@ class MobileNotificationHelper(private val context: Context) {
 }
 
 class NotificationReceiver : BroadcastReceiver() {
+    companion object {
+        const val ACTION_MANUAL_PUNCH_CARD = "com.jas0n1ee.wixtar.chronos.ACTION_MANUAL_PUNCH_CARD"
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
-        val title = intent.getStringExtra("title") ?: "WiXtar 打卡提醒"
-        val message = intent.getStringExtra("message") ?: "時間到了！"
-        val requestCode = intent.getIntExtra("requestCode", System.currentTimeMillis().toInt())
-        val useLiveUpdates = intent.getBooleanExtra("useLiveUpdates", false)
-        val offWorkTimeMillis = intent.getLongExtra("offWorkTimeMillis", 0L)
-        Log.d("NotificationReceiver", "Received broadcast: $title, req: $requestCode, liveUpdates: $useLiveUpdates")
-
-        val helper = MobileNotificationHelper(context)
-
-        if (requestCode == MobileNotificationHelper.FORGET_CLOCK_OUT_NOTIFICATION_ID) {
-            val pendingResult = goAsync()
+        if (intent.action == ACTION_MANUAL_PUNCH_CARD) {
+            val pendingResult = try { goAsync() } catch (_: Exception) { null }
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val storage = AppStorage(context)
-                    val clockIn = storage.clockInTime.first()
-                    val clockOut = storage.clockOutTime.first()
-                    if (!clockIn.isNullOrBlank() && clockOut.isNullOrBlank()) {
-                        helper.sendNotification(
-                            "你忘記打下班卡了！",
-                            "趕快打卡吧，不然要送補打卡單了",
-                            MobileNotificationHelper.FORGET_CLOCK_OUT_NOTIFICATION_ID
-                        )
+                    val repository = ClockRepository(storage)
+                    val notificationHelper = MobileNotificationHelper(context)
+
+                    val empId = storage.empId.first()
+                    val pass = storage.password.first()
+                    val cookie = storage.cookie.first()
+                    val enc = storage.enc.first()
+                    val gps = storage.gpsLocation.first()
+
+                    val currentIn = storage.clockInTime.first()
+                    val isClockingInAction = currentIn.isNullOrBlank()
+
+                    val result = repository.clockIn(empId, pass, cookie, enc, gps)
+                    if (result.isSuccess) {
+                        val time = result.getOrNull() ?: ""
+                        val typeStr = if (isClockingInAction) "上班卡" else "下班卡"
+                        if (isClockingInAction) {
+                            storage.saveClockIn(time)
+                            notificationHelper.scheduleReminders(time)
+                        } else {
+                            storage.saveClockOut(time)
+                        }
+                        notificationHelper.sendNotification("WiXtar 手動打卡成功", "已成功打$typeStr ($time)")
+                    } else {
+                        val errorMsg = result.exceptionOrNull()?.message ?: "打卡失敗"
+                        notificationHelper.sendNotification("WiXtar 手動打卡失敗", errorMsg)
                     }
                 } catch (e: Exception) {
-                    Log.e("NotificationReceiver", "Error checking forget clock out status", e)
+                    e.printStackTrace()
                 } finally {
-                    pendingResult.finish()
+                    pendingResult?.finish()
                 }
             }
-        } else if (requestCode == MobileNotificationHelper.ADVANCE_NOTIFICATION_ID && useLiveUpdates && offWorkTimeMillis > 0) {
-            helper.postLiveUpdateNotification(offWorkTimeMillis)
-        } else if (requestCode == MobileNotificationHelper.OFF_WORK_NOTIFICATION_ID) {
-            helper.cancelLiveUpdateNotification()
-            helper.sendNotification(title, message, MobileNotificationHelper.OFF_WORK_NOTIFICATION_ID)
         } else {
-            val targetId = when (requestCode) {
-                MobileNotificationHelper.FISH_OIL_NOTIFICATION_ID -> MobileNotificationHelper.FISH_OIL_NOTIFICATION_ID
-                else -> requestCode
+            val title = intent.getStringExtra("title") ?: "WiXtar 打卡提醒"
+            val message = intent.getStringExtra("message") ?: "時間到了！"
+            val requestCode = intent.getIntExtra("requestCode", System.currentTimeMillis().toInt())
+            val useLiveUpdates = intent.getBooleanExtra("useLiveUpdates", false)
+            val offWorkTimeMillis = intent.getLongExtra("offWorkTimeMillis", 0L)
+            Log.d("NotificationReceiver", "Received broadcast: $title, req: $requestCode, liveUpdates: $useLiveUpdates")
+
+            val helper = MobileNotificationHelper(context)
+
+            if (requestCode == MobileNotificationHelper.FORGET_CLOCK_OUT_NOTIFICATION_ID) {
+                val pendingResult = goAsync()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val storage = AppStorage(context)
+                        val clockIn = storage.clockInTime.first()
+                        val clockOut = storage.clockOutTime.first()
+                        if (!clockIn.isNullOrBlank() && clockOut.isNullOrBlank()) {
+                            helper.sendNotification(
+                                "你忘記打下班卡了！",
+                                "趕快打卡吧，不然要送補打卡單了",
+                                MobileNotificationHelper.FORGET_CLOCK_OUT_NOTIFICATION_ID
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Log.e("NotificationReceiver", "Error checking forget clock out status", e)
+                    } finally {
+                        pendingResult.finish()
+                    }
+                }
+            } else if (requestCode == MobileNotificationHelper.ADVANCE_NOTIFICATION_ID && useLiveUpdates && offWorkTimeMillis > 0) {
+                helper.postLiveUpdateNotification(offWorkTimeMillis)
+            } else if (requestCode == MobileNotificationHelper.OFF_WORK_NOTIFICATION_ID) {
+                helper.cancelLiveUpdateNotification()
+                helper.sendNotification(title, message, MobileNotificationHelper.OFF_WORK_NOTIFICATION_ID)
+            } else {
+                val targetId = when (requestCode) {
+                    MobileNotificationHelper.FISH_OIL_NOTIFICATION_ID -> MobileNotificationHelper.FISH_OIL_NOTIFICATION_ID
+                    else -> requestCode
+                }
+                helper.sendNotification(title, message, targetId)
             }
-            helper.sendNotification(title, message, targetId)
         }
     }
 }

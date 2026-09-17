@@ -38,6 +38,14 @@ class AppStorage(private val context: Context) {
         val FISH_OIL_NOTIFY_ENABLED = booleanPreferencesKey("fish_oil_notify_enabled")
         val FISH_OIL_NOTIFY_TIME = stringPreferencesKey("fish_oil_notify_time")
         val FISH_OIL_NOTIFY_DAYS = stringPreferencesKey("fish_oil_notify_days")
+
+        val AUTO_CLOCK_IN_ENABLED = booleanPreferencesKey("auto_clock_in_enabled")
+        val WORK_START_TIME = stringPreferencesKey("work_start_time")
+        val FLEXIBLE_CLOCK_IN_ENABLED = booleanPreferencesKey("flexible_clock_in_enabled")
+        val FLEXIBLE_START_TIME = stringPreferencesKey("flexible_start_time")
+        val FLEXIBLE_END_TIME = stringPreferencesKey("flexible_end_time")
+        val AUTO_CLOCK_OUT_ENABLED = booleanPreferencesKey("auto_clock_out_enabled")
+        val AUTO_PUNCH_PAUSE_DAYS = stringPreferencesKey("auto_punch_pause_days")
     }
 
     val empId: Flow<String> = context.dataStore.data.map { it[EMP_ID] ?: "" }
@@ -58,6 +66,16 @@ class AppStorage(private val context: Context) {
     val fishOilNotifyEnabled: Flow<Boolean> = context.dataStore.data.map { it[FISH_OIL_NOTIFY_ENABLED] ?: false }
     val fishOilNotifyTime: Flow<String> = context.dataStore.data.map { it[FISH_OIL_NOTIFY_TIME] ?: "13:10" }
     val fishOilNotifyDays: Flow<String> = context.dataStore.data.map { it[FISH_OIL_NOTIFY_DAYS] ?: "1,2,3,4,5,6,7" }
+
+    val autoClockInEnabled: Flow<Boolean> = context.dataStore.data.map { it[AUTO_CLOCK_IN_ENABLED] ?: false }
+    val workStartTime: Flow<String> = context.dataStore.data.map { it[WORK_START_TIME] ?: "08:30" }
+    val flexibleClockInEnabled: Flow<Boolean> = context.dataStore.data.map { it[FLEXIBLE_CLOCK_IN_ENABLED] ?: false }
+    val flexibleStartTime: Flow<String> = context.dataStore.data.map { it[FLEXIBLE_START_TIME] ?: "08:30" }
+    val flexibleEndTime: Flow<String> = context.dataStore.data.map { it[FLEXIBLE_END_TIME] ?: "09:30" }
+    val autoClockOutEnabled: Flow<Boolean> = context.dataStore.data.map { it[AUTO_CLOCK_OUT_ENABLED] ?: false }
+    val autoPunchPauseDays: Flow<String> = context.dataStore.data.map { it[AUTO_PUNCH_PAUSE_DAYS] ?: "" }
+
+    val lastClockDate: Flow<String?> = context.dataStore.data.map { it[LAST_CLOCK_DATE] }
 
     val clockInTime: Flow<String?> = context.dataStore.data.map { prefs ->
         val date = prefs[LAST_CLOCK_DATE]
@@ -84,7 +102,13 @@ class AppStorage(private val context: Context) {
         forgetClockOutTime: String = "18:30",
         fishOilEnabled: Boolean = false,
         fishOilTime: String = "13:10",
-        fishOilDays: String = "1,2,3,4,5,6,7"
+        fishOilDays: String = "1,2,3,4,5,6,7",
+        autoClockIn: Boolean = false,
+        workStart: String = "08:30",
+        flexibleClockIn: Boolean = false,
+        flexibleStart: String = "08:30",
+        flexibleEnd: String = "09:30",
+        autoClockOut: Boolean = false
     ) {
         context.dataStore.edit { prefs ->
             prefs[EMP_ID] = empId
@@ -93,7 +117,8 @@ class AppStorage(private val context: Context) {
             prefs[ENC] = enc
             prefs[GPS_LOCATION] = gps
             prefs[NOTIFY_BEFORE_OFF_WORK] = notifyBefore
-            prefs[NOTIFY_ON_OFF_WORK] = notifyOn
+            // When autoClockOut is enabled, notifyOn (滿9小時可下班通知) is turned off
+            prefs[NOTIFY_ON_OFF_WORK] = if (autoClockOut) false else notifyOn
             prefs[NOTIFY_ADVANCE_MINUTES] = advanceMinutes
             prefs[USE_LIVE_UPDATES] = useLiveUpdates
             prefs[FORGET_CLOCK_OUT_NOTIFY_ENABLED] = forgetClockOutEnabled
@@ -101,6 +126,13 @@ class AppStorage(private val context: Context) {
             prefs[FISH_OIL_NOTIFY_ENABLED] = fishOilEnabled
             prefs[FISH_OIL_NOTIFY_TIME] = fishOilTime
             prefs[FISH_OIL_NOTIFY_DAYS] = fishOilDays
+
+            prefs[AUTO_CLOCK_IN_ENABLED] = autoClockIn
+            prefs[WORK_START_TIME] = workStart
+            prefs[FLEXIBLE_CLOCK_IN_ENABLED] = flexibleClockIn
+            prefs[FLEXIBLE_START_TIME] = workStart // flexibleStart mirrors workStart
+            prefs[FLEXIBLE_END_TIME] = flexibleEnd
+            prefs[AUTO_CLOCK_OUT_ENABLED] = autoClockOut
         }
     }
 
@@ -135,6 +167,12 @@ class AppStorage(private val context: Context) {
                 prefs[CLOCK_IN_TIME] = ""
                 prefs[CLOCK_OUT_TIME] = ""
             }
+        }
+    }
+
+    suspend fun saveAutoPunchPauseDays(daysCsv: String) {
+        context.dataStore.edit { prefs ->
+            prefs[AUTO_PUNCH_PAUSE_DAYS] = daysCsv
         }
     }
 }

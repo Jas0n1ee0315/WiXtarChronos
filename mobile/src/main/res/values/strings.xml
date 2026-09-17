@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WiXtar 打卡</string>
+    <string name="shortcut_punch_card_label">WiXtar 打卡</string>
+    <string name="shortcut_punch_card_long_label">線上簽到與簽退打卡</string>
+</resources>

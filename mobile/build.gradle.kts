@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.play.services.wearable)
     implementation(libs.work.runtime.ktx)
     implementation(libs.core.splashscreen)
+    implementation("androidx.core:core-google-shortcuts:1.1.0")
 
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)

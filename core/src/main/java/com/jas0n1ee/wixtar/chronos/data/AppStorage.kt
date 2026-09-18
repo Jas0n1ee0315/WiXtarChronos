@@ -11,6 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -44,8 +45,16 @@ class AppStorage(private val context: Context) {
         val FLEXIBLE_CLOCK_IN_ENABLED = booleanPreferencesKey("flexible_clock_in_enabled")
         val FLEXIBLE_START_TIME = stringPreferencesKey("flexible_start_time")
         val FLEXIBLE_END_TIME = stringPreferencesKey("flexible_end_time")
+
         val AUTO_CLOCK_OUT_ENABLED = booleanPreferencesKey("auto_clock_out_enabled")
         val AUTO_PUNCH_PAUSE_DAYS = stringPreferencesKey("auto_punch_pause_days")
+
+        val LUNCH_DND_ENABLED = booleanPreferencesKey("lunch_dnd_enabled")
+        val LUNCH_DND_START_TIME = stringPreferencesKey("lunch_dnd_start_time")
+        val LUNCH_DND_END_TIME = stringPreferencesKey("lunch_dnd_end_time")
+
+        val MOCK_OFF_WORK_TIME = stringPreferencesKey("mock_off_work_time")
+        val SELECTED_APP_ICON = stringPreferencesKey("selected_app_icon")
     }
 
     val empId: Flow<String> = context.dataStore.data.map { it[EMP_ID] ?: "" }
@@ -70,10 +79,18 @@ class AppStorage(private val context: Context) {
     val autoClockInEnabled: Flow<Boolean> = context.dataStore.data.map { it[AUTO_CLOCK_IN_ENABLED] ?: false }
     val workStartTime: Flow<String> = context.dataStore.data.map { it[WORK_START_TIME] ?: "08:30" }
     val flexibleClockInEnabled: Flow<Boolean> = context.dataStore.data.map { it[FLEXIBLE_CLOCK_IN_ENABLED] ?: false }
-    val flexibleStartTime: Flow<String> = context.dataStore.data.map { it[FLEXIBLE_START_TIME] ?: "08:30" }
-    val flexibleEndTime: Flow<String> = context.dataStore.data.map { it[FLEXIBLE_END_TIME] ?: "09:30" }
+    val flexibleStartTime: Flow<String> = context.dataStore.data.map { it[FLEXIBLE_START_TIME] ?: "08:00" }
+    val flexibleEndTime: Flow<String> = context.dataStore.data.map { it[FLEXIBLE_END_TIME] ?: "09:00" }
+
     val autoClockOutEnabled: Flow<Boolean> = context.dataStore.data.map { it[AUTO_CLOCK_OUT_ENABLED] ?: false }
     val autoPunchPauseDays: Flow<String> = context.dataStore.data.map { it[AUTO_PUNCH_PAUSE_DAYS] ?: "" }
+
+    val lunchDndEnabled: Flow<Boolean> = context.dataStore.data.map { it[LUNCH_DND_ENABLED] ?: false }
+    val lunchDndStartTime: Flow<String> = context.dataStore.data.map { it[LUNCH_DND_START_TIME] ?: "12:00" }
+    val lunchDndEndTime: Flow<String> = context.dataStore.data.map { it[LUNCH_DND_END_TIME] ?: "13:00" }
+
+    val mockOffWorkTime: Flow<String> = context.dataStore.data.map { it[MOCK_OFF_WORK_TIME] ?: "17:30" }
+    val selectedAppIcon: Flow<String> = context.dataStore.data.map { it[SELECTED_APP_ICON] ?: "com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityDefault" }
 
     val lastClockDate: Flow<String?> = context.dataStore.data.map { it[LAST_CLOCK_DATE] }
 
@@ -86,6 +103,12 @@ class AppStorage(private val context: Context) {
         val date = prefs[LAST_CLOCK_DATE]
         val today = LocalDate.now().toString()
         if (date == today) prefs[CLOCK_OUT_TIME] else null
+    }
+
+    suspend fun saveSelectedAppIcon(aliasName: String) {
+        context.dataStore.edit { prefs ->
+            prefs[SELECTED_APP_ICON] = aliasName
+        }
     }
 
     suspend fun saveSettings(
@@ -106,9 +129,13 @@ class AppStorage(private val context: Context) {
         autoClockIn: Boolean = false,
         workStart: String = "08:30",
         flexibleClockIn: Boolean = false,
-        flexibleStart: String = "08:30",
-        flexibleEnd: String = "09:30",
-        autoClockOut: Boolean = false
+        flexibleStart: String = "08:00",
+        flexibleEnd: String = "09:00",
+        autoClockOut: Boolean = false,
+        lunchDndEnabled: Boolean = false,
+        lunchDndStartTime: String = "12:00",
+        lunchDndEndTime: String = "13:00",
+        mockOffWorkTime: String = "17:30"
     ) {
         context.dataStore.edit { prefs ->
             prefs[EMP_ID] = empId
@@ -126,13 +153,16 @@ class AppStorage(private val context: Context) {
             prefs[FISH_OIL_NOTIFY_ENABLED] = fishOilEnabled
             prefs[FISH_OIL_NOTIFY_TIME] = fishOilTime
             prefs[FISH_OIL_NOTIFY_DAYS] = fishOilDays
-
             prefs[AUTO_CLOCK_IN_ENABLED] = autoClockIn
             prefs[WORK_START_TIME] = workStart
             prefs[FLEXIBLE_CLOCK_IN_ENABLED] = flexibleClockIn
-            prefs[FLEXIBLE_START_TIME] = workStart // flexibleStart mirrors workStart
+            prefs[FLEXIBLE_START_TIME] = flexibleStart
             prefs[FLEXIBLE_END_TIME] = flexibleEnd
             prefs[AUTO_CLOCK_OUT_ENABLED] = autoClockOut
+            prefs[LUNCH_DND_ENABLED] = lunchDndEnabled
+            prefs[LUNCH_DND_START_TIME] = lunchDndStartTime
+            prefs[LUNCH_DND_END_TIME] = lunchDndEndTime
+            prefs[MOCK_OFF_WORK_TIME] = mockOffWorkTime
         }
     }
 
@@ -171,8 +201,44 @@ class AppStorage(private val context: Context) {
     }
 
     suspend fun saveAutoPunchPauseDays(daysCsv: String) {
+        val today = LocalDate.now()
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val validDays = daysCsv.split(",")
+            .mapNotNull { s -> s.trim().takeIf { it.isNotBlank() } }
+            .filter { dateStr ->
+                try {
+                    val date = LocalDate.parse(dateStr, formatter)
+                    !date.isBefore(today)
+                } catch (_: Exception) {
+                    false
+                }
+            }
+            .sorted()
+            .joinToString(",")
+
         context.dataStore.edit { prefs ->
-            prefs[AUTO_PUNCH_PAUSE_DAYS] = daysCsv
+            prefs[AUTO_PUNCH_PAUSE_DAYS] = validDays
+        }
+    }
+
+    suspend fun cleanExpiredPauseDays() {
+        val today = LocalDate.now()
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        context.dataStore.edit { prefs ->
+            val rawCsv = prefs[AUTO_PUNCH_PAUSE_DAYS] ?: ""
+            if (rawCsv.isNotBlank()) {
+                val validDates = rawCsv.split(",")
+                    .mapNotNull { s -> s.trim().takeIf { it.isNotBlank() } }
+                    .filter { dateStr ->
+                        try {
+                            val date = LocalDate.parse(dateStr, formatter)
+                            !date.isBefore(today)
+                        } catch (_: Exception) {
+                            false
+                        }
+                    }
+                prefs[AUTO_PUNCH_PAUSE_DAYS] = validDates.sorted().joinToString(",")
+            }
         }
     }
 }

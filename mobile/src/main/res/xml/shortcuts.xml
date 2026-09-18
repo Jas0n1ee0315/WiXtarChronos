@@ -31,7 +31,7 @@
     <shortcut
         android:shortcutId="punch_card_shortcut"
         android:enabled="true"
-        android:icon="@drawable/ic_cloud_clock"
+        android:icon="@drawable/ic_shortcut_cloud_clock"
         android:shortcutShortLabel="@string/shortcut_punch_card_label"
         android:shortcutLongLabel="@string/shortcut_punch_card_long_label">
         <intent

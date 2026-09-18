@@ -28,11 +28,20 @@ fun MultiDatePickerDialog(
     onConfirm: (String) -> Unit
 ) {
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val today = LocalDate.now()
 
     var selectedDates by remember(initialSelectedDatesCsv) {
         mutableStateOf(
             initialSelectedDatesCsv.split(",")
                 .mapNotNull { s -> s.trim().takeIf { it.isNotBlank() } }
+                .filter { dStr ->
+                    try {
+                        val d = LocalDate.parse(dStr, formatter)
+                        !d.isBefore(today)
+                    } catch (_: Exception) {
+                        false
+                    }
+                }
                 .toSet()
         )
     }
@@ -146,12 +155,13 @@ fun MultiDatePickerDialog(
                             val date = LocalDate.of(currentYearMonth.year, currentYearMonth.monthValue, dayOfMonth)
                             val dateStr = date.format(formatter)
                             val isSelected = selectedDates.contains(dateStr)
-                            val isToday = date == LocalDate.now()
+                            val isToday = date == today
+                            val isPastDate = date.isBefore(today)
 
                             Surface(
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .clickable {
+                                    .clickable(enabled = !isPastDate) {
                                         selectedDates = if (isSelected) {
                                             selectedDates - dateStr
                                         } else {
@@ -165,6 +175,7 @@ fun MultiDatePickerDialog(
                                     else -> MaterialTheme.colorScheme.surface
                                 },
                                 contentColor = when {
+                                    isPastDate -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                     isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
                                     isToday -> MaterialTheme.colorScheme.primary
                                     else -> MaterialTheme.colorScheme.onSurface
@@ -193,18 +204,21 @@ fun MultiDatePickerDialog(
                         val displayFormatter = DateTimeFormatter.ofPattern("MM/dd(E)", Locale.TAIWAN)
                         val summaryText = selectedDates.sorted().mapNotNull { dStr ->
                             try {
-                                LocalDate.parse(dStr, formatter).format(displayFormatter)
+                                val d = LocalDate.parse(dStr, formatter)
+                                if (!d.isBefore(today)) d.format(displayFormatter) else null
                             } catch (_: Exception) {
                                 null
                             }
                         }.joinToString("、")
 
-                        Text(
-                            text = "暫停日：$summaryText",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(10.dp)
-                        )
+                        if (summaryText.isNotBlank()) {
+                            Text(
+                                text = "暫停日：$summaryText",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -217,17 +231,18 @@ fun formatPauseDaysForDisplay(daysCsv: String): String {
     val days = daysCsv.split(",").mapNotNull { s -> s.trim().takeIf { it.isNotBlank() } }
     if (days.isEmpty()) return "點擊設定暫停打卡日期"
 
+    val today = LocalDate.now()
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     val displayFormatter = DateTimeFormatter.ofPattern("MM/dd(E)", Locale.TAIWAN)
 
-    val formattedList = days.sorted().mapNotNull { dayStr ->
+    val formattedList = days.mapNotNull { dayStr ->
         try {
             val date = LocalDate.parse(dayStr, formatter)
-            date.format(displayFormatter)
+            if (!date.isBefore(today)) date else null
         } catch (_: Exception) {
             null
         }
-    }
+    }.sorted().map { it.format(displayFormatter) }
 
     return if (formattedList.isEmpty()) "點擊設定暫停打卡日期" else formattedList.joinToString("、")
 }

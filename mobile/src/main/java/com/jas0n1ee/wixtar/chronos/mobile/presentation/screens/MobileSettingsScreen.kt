@@ -11,6 +11,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,12 +23,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoMode
 import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MyLocation
@@ -46,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -54,8 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.jas0n1ee.wixtar.chronos.mobile.R
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.MobileClockViewModel
-import com.jas0n1ee.wixtar.chronos.mobile.shortcut.AssistantShortcutManager
 
 enum class SettingsSubCategory(val title: String) {
     MAIN("系統設定"),
@@ -119,7 +121,14 @@ fun MobileSettingsScreen(
     val workStart by viewModel.workStartTime.collectAsState()
     val flexibleClockIn by viewModel.flexibleClockInEnabled.collectAsState()
     val flexibleEnd by viewModel.flexibleEndTime.collectAsState()
+
     val autoClockOut by viewModel.autoClockOutEnabled.collectAsState()
+
+    val lunchDndEnabled by viewModel.lunchDndEnabled.collectAsState()
+    val lunchDndStartTime by viewModel.lunchDndStartTime.collectAsState()
+    val lunchDndEndTime by viewModel.lunchDndEndTime.collectAsState()
+
+    val mockOffWorkTime by viewModel.mockOffWorkTime.collectAsState()
 
     var tempEmpId by remember(empId) { mutableStateOf(empId) }
     var tempPassword by remember(password) { mutableStateOf(password) }
@@ -142,16 +151,24 @@ fun MobileSettingsScreen(
     var tempWorkStart by remember(workStart) { mutableStateOf(workStart) }
     var tempFlexibleClockIn by remember(flexibleClockIn) { mutableStateOf(flexibleClockIn) }
     var tempFlexibleEnd by remember(flexibleEnd) { mutableStateOf(flexibleEnd) }
+
     var tempAutoClockOut by remember(autoClockOut) { mutableStateOf(autoClockOut) }
+
+    var tempLunchDndEnabled by remember(lunchDndEnabled) { mutableStateOf(lunchDndEnabled) }
+    var tempLunchDndStartTime by remember(lunchDndStartTime) { mutableStateOf(lunchDndStartTime) }
+    var tempLunchDndEndTime by remember(lunchDndEndTime) { mutableStateOf(lunchDndEndTime) }
+
+    var tempMockOffWorkTime by remember(mockOffWorkTime) { mutableStateOf(mockOffWorkTime) }
 
     var isPasswordVisible by remember { mutableStateOf(false) }
     var advanceDropdownExpanded by remember { mutableStateOf(false) }
     
     var showTimePickerDialog by remember { mutableStateOf(false) }
-    var activeTimePickerTarget by remember { mutableStateOf("FISH_OIL") } // "FISH_OIL", "FORGET_CLOCK_OUT", "WORK_START", "FLEXIBLE_END"
+    var activeTimePickerTarget by remember { mutableStateOf("FISH_OIL") }
 
     var showPowerWarningDialog by remember { mutableStateOf(false) }
     var showBatteryOptimizationDialog by remember { mutableStateOf(false) }
+    var showDndPermissionDialog by remember { mutableStateOf(false) }
     var pendingToggleTarget by remember { mutableStateOf<String?>(null) }
 
     fun autoSave(
@@ -173,14 +190,20 @@ fun MobileSettingsScreen(
         workStartVal: String = tempWorkStart,
         flexibleClockInVal: Boolean = tempFlexibleClockIn,
         flexibleEndVal: String = tempFlexibleEnd,
-        autoClockOutVal: Boolean = tempAutoClockOut
+        autoClockOutVal: Boolean = tempAutoClockOut,
+        lunchDndEnabledVal: Boolean = tempLunchDndEnabled,
+        lunchDndStartTimeVal: String = tempLunchDndStartTime,
+        lunchDndEndTimeVal: String = tempLunchDndEndTime,
+        mockOffWorkTimeVal: String = tempMockOffWorkTime
     ) {
         viewModel.saveSettings(
             empIdVal, passVal, cookieVal, encVal, gpsVal,
             notifyBeforeVal, notifyOnVal, advanceMinutesVal, useLiveUpdatesVal,
             forgetClockOutEnabledVal, forgetClockOutTimeVal,
             fishOilEnabledVal, fishOilTimeVal, fishOilDaysVal,
-            autoClockInVal, workStartVal, flexibleClockInVal, workStartVal, flexibleEndVal, autoClockOutVal
+            autoClockInVal, workStartVal, flexibleClockInVal, workStartVal, flexibleEndVal, autoClockOutVal,
+            lunchDndEnabledVal, lunchDndStartTimeVal, lunchDndEndTimeVal,
+            mockOffWorkTimeVal
         )
     }
 
@@ -223,14 +246,17 @@ fun MobileSettingsScreen(
         }
     }
 
-    // TimePicker Dialog
+    // TimePicker Dialog for Target Selection
     if (showTimePickerDialog) {
         val currentTimeStr = when (activeTimePickerTarget) {
             "FISH_OIL" -> tempFishOilTime
             "FORGET_CLOCK_OUT" -> tempForgetClockOutTime
             "WORK_START" -> tempWorkStart
             "FLEXIBLE_END" -> tempFlexibleEnd
-            else -> "08:30"
+            "LUNCH_DND_START" -> tempLunchDndStartTime
+            "LUNCH_DND_END" -> tempLunchDndEndTime
+            "MOCK_OFF_WORK" -> tempMockOffWorkTime
+            else -> "12:00"
         }
         val initialParts = currentTimeStr.split(":")
         val defaultHour = when (activeTimePickerTarget) {
@@ -238,14 +264,20 @@ fun MobileSettingsScreen(
             "FORGET_CLOCK_OUT" -> 18
             "WORK_START" -> 8
             "FLEXIBLE_END" -> 9
-            else -> 8
+            "LUNCH_DND_START" -> 12
+            "LUNCH_DND_END" -> 13
+            "MOCK_OFF_WORK" -> 17
+            else -> 12
         }
         val defaultMinute = when (activeTimePickerTarget) {
             "FISH_OIL" -> 10
             "FORGET_CLOCK_OUT" -> 30
             "WORK_START" -> 30
             "FLEXIBLE_END" -> 30
-            else -> 30
+            "LUNCH_DND_START" -> 0
+            "LUNCH_DND_END" -> 0
+            "MOCK_OFF_WORK" -> 30
+            else -> 0
         }
         val initialHour = initialParts.getOrNull(0)?.toIntOrNull() ?: defaultHour
         val initialMinute = initialParts.getOrNull(1)?.toIntOrNull() ?: defaultMinute
@@ -260,18 +292,7 @@ fun MobileSettingsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showTimePickerDialog = false
-                    var hour = timePickerState.hour
-                    var minute = timePickerState.minute
-
-                    // Capped at 09:30 for FLEXIBLE_END
-                    if (activeTimePickerTarget == "FLEXIBLE_END") {
-                        if (hour > 9 || (hour == 9 && minute > 30)) {
-                            hour = 9
-                            minute = 30
-                        }
-                    }
-
-                    val formatted = String.format("%02d:%02d", hour, minute)
+                    val formatted = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
                     when (activeTimePickerTarget) {
                         "FISH_OIL" -> {
                             tempFishOilTime = formatted
@@ -288,6 +309,18 @@ fun MobileSettingsScreen(
                         "FLEXIBLE_END" -> {
                             tempFlexibleEnd = formatted
                             autoSave(flexibleEndVal = formatted)
+                        }
+                        "LUNCH_DND_START" -> {
+                            tempLunchDndStartTime = formatted
+                            autoSave(lunchDndStartTimeVal = formatted)
+                        }
+                        "LUNCH_DND_END" -> {
+                            tempLunchDndEndTime = formatted
+                            autoSave(lunchDndEndTimeVal = formatted)
+                        }
+                        "MOCK_OFF_WORK" -> {
+                            tempMockOffWorkTime = formatted
+                            autoSave(mockOffWorkTimeVal = formatted)
                         }
                     }
                 }) {
@@ -358,7 +391,7 @@ fun MobileSettingsScreen(
             onDismissRequest = { showBatteryOptimizationDialog = false },
             title = { Text("允許在背景持續運行", fontWeight = FontWeight.Bold) },
             text = {
-                Text("為確保重開機後或手機深層休眠時依然能準時推播提醒，建議允許 App 在背景持續運行。\n\n點擊「前往允許」將會顯示系統權限要求。")
+                Text("為確保重開機後或手機深層休眠時依然能準時推播提醒與自動打卡，建議允許 App 在背景持續運行。\n\n點擊「前往允許」將會顯示系統權限要求。")
             },
             confirmButton = {
                 Button(
@@ -372,6 +405,31 @@ fun MobileSettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showBatteryOptimizationDialog = false }) {
+                    Text("稍後設定")
+                }
+            }
+        )
+    }
+
+    if (showDndPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showDndPermissionDialog = false },
+            title = { Text("需要勿擾模式存取權限", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("開啟「上班日午休勿擾」功能需要允許 App 存取系統勿擾模式 (Do Not Disturb)。\n\n點擊「前往授權」將會開啟系統設定中的「勿擾模式存取權限」頁面。")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDndPermissionDialog = false
+                        viewModel.openNotificationPolicySettings()
+                    }
+                ) {
+                    Text("前往授權")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDndPermissionDialog = false }) {
                     Text("稍後設定")
                 }
             }
@@ -416,7 +474,7 @@ fun MobileSettingsScreen(
 
                     SettingsMenuItemCard(
                         title = "自動打卡功能",
-                        subtitle = "定時自動打卡與流程設定",
+                        subtitle = "定時自動打卡與上班日午休勿擾設定",
                         icon = Icons.Default.AutoMode,
                         onClick = { currentSubCategory = SettingsSubCategory.AUTO_CLOCK }
                     )
@@ -739,7 +797,7 @@ fun MobileSettingsScreen(
 
                             HorizontalDivider()
 
-                            // 3. 忘記打卡補救提醒 (NEW)
+                            // 3. 忘記打卡補救提醒
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -911,6 +969,53 @@ fun MobileSettingsScreen(
                                     }
                                 }
                             }
+
+                            HorizontalDivider()
+
+                            // 5. 模擬下班時間 (測試 Live Update 用)
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("模擬下班時間 (測試 Live Update)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                Text("僅用於測試 Live Update 倒數推播效果，即便開啟自動打卡亦絕不發起真實打卡", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        onClick = {
+                                            activeTimePickerTarget = "MOCK_OFF_WORK"
+                                            showTimePickerDialog = true
+                                        },
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = MaterialTheme.colorScheme.secondaryContainer
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = tempMockOffWorkTime,
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                        }
+                                    }
+
+                                    Button(
+                                        onClick = { viewModel.triggerMockLiveUpdateNotification(tempMockOffWorkTime) },
+                                        shape = RoundedCornerShape(16.dp)
+                                    ) {
+                                        Text("發送測試通知")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1065,7 +1170,7 @@ fun MobileSettingsScreen(
 
                                     Text("~", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-                                    // End Time (capped at 09:30)
+                                    // End Time
                                     Surface(
                                         onClick = {
                                             if (tempAutoClockIn && tempFlexibleClockIn) {
@@ -1110,6 +1215,34 @@ fun MobileSettingsScreen(
                                         autoSave(autoClockOutVal = checked, notifyOnVal = tempNotifyOn)
                                         if (checked && !isIgnoringBattery) {
                                             showBatteryOptimizationDialog = true
+                                        }
+                                    }
+                                )
+                            }
+
+                            HorizontalDivider()
+
+                            // 6. 上班日午休勿擾 Switch
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("上班日午休勿擾", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                    Text("每日 12:00 自動檢查若今日有打上班卡，則自動開啟勿擾模式，並於 13:00 自動關閉", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = tempLunchDndEnabled,
+                                    onCheckedChange = { checked ->
+                                        tempLunchDndEnabled = checked
+                                        autoSave(lunchDndEnabledVal = checked)
+                                        if (checked) {
+                                            if (!viewModel.isNotificationPolicyAccessGranted()) {
+                                                showDndPermissionDialog = true
+                                            } else if (!isIgnoringBattery) {
+                                                showBatteryOptimizationDialog = true
+                                            }
                                         }
                                     }
                                 )
@@ -1232,7 +1365,7 @@ fun MobileSettingsScreen(
                                     ) {
                                         Icon(Icons.Default.Sync, contentDescription = null)
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("條即與 Wear OS 手錶同步", style = MaterialTheme.typography.labelLarge)
+                                        Text("立即與 Wear OS 手錶同步", style = MaterialTheme.typography.labelLarge)
                                     }
 
                                     OutlinedButton(
@@ -1254,6 +1387,15 @@ fun MobileSettingsScreen(
             }
 
             SettingsSubCategory.CUSTOM_ICON -> {
+                val selectedIcon by viewModel.selectedAppIcon.collectAsState()
+
+                val iconOptions = listOf(
+                    Triple("com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityDefault", "預設圖示", R.mipmap.ic_launcher)
+                ) + (1..25).map { index ->
+                    val drawableRes = context.resources.getIdentifier("icon_option_$index", "drawable", context.packageName)
+                    Triple("com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon$index", "風格 $index", if (drawableRes != 0) drawableRes else R.mipmap.ic_launcher)
+                }
+
                 Column(
                     modifier = modifier
                         .fillMaxSize()
@@ -1266,33 +1408,84 @@ fun MobileSettingsScreen(
                         onBack = { currentSubCategory = SettingsSubCategory.MAIN }
                     )
 
-                    ElevatedCard(
+                    Text(
+                        text = "點擊下方任意圖示即可套用至您手機的桌面。系統將自動更新應用程式圖示與名稱。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // 3-Column Grid for Custom App Icons
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text("圖示風格預覽", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant
+                        iconOptions.chunked(3).forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Icon(Icons.Default.Palette, contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
-                                    Column {
-                                        Text("經典品牌紅色標誌", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                        Text("相容 Android 8.0+ 適應性圖示 (Adaptive Icon)", style = MaterialTheme.typography.bodySmall)
+                                rowItems.forEach { (aliasName, label, drawableRes) ->
+                                    val isSelected = selectedIcon == aliasName
+
+                                    ElevatedCard(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                viewModel.switchAppIcon(aliasName)
+                                            },
+                                        shape = RoundedCornerShape(20.dp),
+                                        colors = CardDefaults.elevatedCardColors(
+                                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                                        ),
+                                        elevation = CardDefaults.elevatedCardElevation(
+                                            defaultElevation = if (isSelected) 6.dp else 2.dp
+                                        )
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.size(56.dp),
+                                                contentAlignment = Alignment.TopEnd
+                                            ) {
+                                                Image(
+                                                    painter = painterResource(id = drawableRes),
+                                                    contentDescription = label,
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                                if (isSelected) {
+                                                    Surface(
+                                                        shape = CircleShape,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(18.dp)
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Default.Check,
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                                            modifier = Modifier.padding(2.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
                                     }
+                                }
+
+                                // Fill remaining spaces if last row has less than 3 items
+                                repeat(3 - rowItems.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }

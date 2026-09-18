@@ -14,15 +14,18 @@ object AssistantShortcutManager {
 
     fun pushDynamicShortcut(context: Context) {
         try {
+            // Remove legacy dynamic shortcuts if any existed
+            ShortcutManagerCompat.removeAllDynamicShortcuts(context)
+
             val intent = Intent(context, MainActivity::class.java).apply {
                 action = Intent.ACTION_VIEW
                 putExtra("action", "PUNCH_CARD")
             }
 
-            val shortcut = ShortcutInfoCompat.Builder(context, "punch_card_dynamic_shortcut")
-                .setShortLabel("WiXtar 打卡")
-                .setLongLabel("線上簽到與簽退打卡")
-                .setIcon(IconCompat.createWithResource(context, R.drawable.ic_cloud_clock))
+            val shortcut = ShortcutInfoCompat.Builder(context, "punch_card_shortcut")
+                .setShortLabel("打卡")
+                .setLongLabel("打卡")
+                .setIcon(IconCompat.createWithResource(context, R.drawable.ic_shortcut_cloud_clock))
                 .setIntent(intent)
                 .addCapabilityBinding(
                     "actions.intent.OPEN_APP_FEATURE",
@@ -53,10 +56,10 @@ object AssistantShortcutManager {
                     putExtra("action", "PUNCH_CARD")
                 }
 
-                val pinShortcutInfo = ShortcutInfoCompat.Builder(context, "punch_card_dynamic_shortcut")
-                    .setShortLabel("WiXtar 打卡")
-                    .setLongLabel("線上簽到與簽退打卡")
-                    .setIcon(IconCompat.createWithResource(context, R.drawable.ic_cloud_clock))
+                val pinShortcutInfo = ShortcutInfoCompat.Builder(context, "punch_card_shortcut")
+                    .setShortLabel("打卡")
+                    .setLongLabel("打卡")
+                    .setIcon(IconCompat.createWithResource(context, R.drawable.ic_shortcut_cloud_clock))
                     .setIntent(intent)
                     .addCapabilityBinding(
                         "actions.intent.OPEN_APP_FEATURE",

@@ -54,7 +54,6 @@ class AppStorage(private val context: Context) {
         val LUNCH_DND_END_TIME = stringPreferencesKey("lunch_dnd_end_time")
 
         val MOCK_OFF_WORK_TIME = stringPreferencesKey("mock_off_work_time")
-        val SELECTED_APP_ICON = stringPreferencesKey("selected_app_icon")
     }
 
     val empId: Flow<String> = context.dataStore.data.map { it[EMP_ID] ?: "" }
@@ -90,7 +89,6 @@ class AppStorage(private val context: Context) {
     val lunchDndEndTime: Flow<String> = context.dataStore.data.map { it[LUNCH_DND_END_TIME] ?: "13:00" }
 
     val mockOffWorkTime: Flow<String> = context.dataStore.data.map { it[MOCK_OFF_WORK_TIME] ?: "17:30" }
-    val selectedAppIcon: Flow<String> = context.dataStore.data.map { it[SELECTED_APP_ICON] ?: "com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityDefault" }
 
     val lastClockDate: Flow<String?> = context.dataStore.data.map { it[LAST_CLOCK_DATE] }
 
@@ -103,12 +101,6 @@ class AppStorage(private val context: Context) {
         val date = prefs[LAST_CLOCK_DATE]
         val today = LocalDate.now().toString()
         if (date == today) prefs[CLOCK_OUT_TIME] else null
-    }
-
-    suspend fun saveSelectedAppIcon(aliasName: String) {
-        context.dataStore.edit { prefs ->
-            prefs[SELECTED_APP_ICON] = aliasName
-        }
     }
 
     suspend fun saveSettings(

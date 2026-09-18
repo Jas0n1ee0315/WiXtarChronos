@@ -17,7 +17,6 @@ import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
 import com.jas0n1ee.wixtar.chronos.mobile.R
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity
-import com.jas0n1ee.wixtar.chronos.mobile.receiver.LunchDndReceiver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -35,8 +34,6 @@ class MobileNotificationHelper(private val context: Context) {
         
         const val ADVANCE_NOTIFICATION_ID = 101
         const val OFF_WORK_NOTIFICATION_ID = 102
-        const val LUNCH_DND_START_NOTIFICATION_ID = 5551
-        const val LUNCH_DND_END_NOTIFICATION_ID = 5552
         const val FORGET_CLOCK_OUT_NOTIFICATION_ID = 7777
         const val LIVE_UPDATE_NOTIFICATION_ID = 8888
         const val FISH_OIL_NOTIFICATION_ID = 9999
@@ -106,28 +103,6 @@ class MobileNotificationHelper(private val context: Context) {
         }
     }
 
-    fun isNotificationPolicyAccessGranted(): Boolean {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            notificationManager.isNotificationPolicyAccessGranted
-        } else {
-            true
-        }
-    }
-
-    fun openNotificationPolicySettings() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            try {
-                val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(intent)
-            } catch (e: Exception) {
-                Log.e("MobileNotificationHelper", "Failed to open notification policy settings", e)
-            }
-        }
-    }
-
     private fun setAlarm(
         triggerAtMillis: Long,
         requestCode: Int,
@@ -170,44 +145,29 @@ class MobileNotificationHelper(private val context: Context) {
     fun scheduleReminders(
         clockInTimeStr: String,
         advanceMinutes: Int = 10,
-        useLiveUpdates: Boolean = false,
-        mockOffWorkTimeStr: String = ""
+        useLiveUpdates: Boolean = false
     ) {
         try {
             val formatter = DateTimeFormatter.ofPattern("HH:mm")
-            
-            val offWorkTime = if (mockOffWorkTimeStr.isNotBlank()) {
-                LocalTime.parse(mockOffWorkTimeStr.trim(), formatter)
-            } else if (clockInTimeStr.isNotBlank()) {
-                val clockInTime = LocalTime.parse(clockInTimeStr.substringBefore(" ").trim(), formatter)
-                clockInTime.plusHours(9)
-            } else {
-                return
-            }
-
+            val clockInTime = LocalTime.parse(clockInTimeStr.substringBefore(" "), formatter)
+            val offWorkTime = clockInTime.plusHours(9)
             val advanceTime = offWorkTime.minusMinutes(advanceMinutes.toLong())
+
             val now = ZonedDateTime.now(ZoneId.systemDefault())
 
-            var startAdvanceDateTime = now
+            val timeAdvance = now
                 .withHour(advanceTime.hour)
                 .withMinute(advanceTime.minute)
                 .withSecond(0)
+                .toInstant()
+                .toEpochMilli()
 
-            if (startAdvanceDateTime.isBefore(now) && startAdvanceDateTime.plusMinutes(1).isBefore(now)) {
-                startAdvanceDateTime = startAdvanceDateTime.plusDays(1)
-            }
-
-            var startOffDateTime = now
+            val timeOff = now
                 .withHour(offWorkTime.hour)
                 .withMinute(offWorkTime.minute)
                 .withSecond(0)
-
-            if (startOffDateTime.isBefore(now) && startOffDateTime.plusMinutes(1).isBefore(now)) {
-                startOffDateTime = startOffDateTime.plusDays(1)
-            }
-
-            val timeAdvance = startAdvanceDateTime.toInstant().toEpochMilli()
-            val timeOff = startOffDateTime.toInstant().toEpochMilli()
+                .toInstant()
+                .toEpochMilli()
 
             if (System.currentTimeMillis() < timeAdvance) {
                 setAlarm(
@@ -218,7 +178,6 @@ class MobileNotificationHelper(private val context: Context) {
                     useLiveUpdates = useLiveUpdates,
                     offWorkTimeMillis = timeOff
                 )
-                Log.d("MobileNotificationHelper", "Scheduled ADVANCE_NOTIFICATION at $startAdvanceDateTime for offWork $startOffDateTime")
             }
 
             if (System.currentTimeMillis() < timeOff) {
@@ -228,56 +187,9 @@ class MobileNotificationHelper(private val context: Context) {
                     title = "可下班通知",
                     message = "您已達到 9 小時工作時間，記得打下班卡哦！"
                 )
-                Log.d("MobileNotificationHelper", "Scheduled OFF_WORK_NOTIFICATION at $startOffDateTime")
             }
         } catch (e: Exception) {
             Log.e("MobileNotificationHelper", "Error in scheduleReminders", e)
-        }
-    }
-
-    fun scheduleLunchDndReminders(startTimeStr: String = "12:00", endTimeStr: String = "13:00") {
-        try {
-            val formatter = DateTimeFormatter.ofPattern("HH:mm")
-            val startTime = LocalTime.parse(startTimeStr.trim(), formatter)
-            val endTime = LocalTime.parse(endTimeStr.trim(), formatter)
-            val now = ZonedDateTime.now(ZoneId.systemDefault())
-
-            var startDateTime = now.withHour(startTime.hour).withMinute(startTime.minute).withSecond(0)
-            if (startDateTime.isBefore(now)) {
-                startDateTime = startDateTime.plusDays(1)
-            }
-
-            var endDateTime = now.withHour(endTime.hour).withMinute(endTime.minute).withSecond(0)
-            if (endDateTime.isBefore(now)) {
-                endDateTime = endDateTime.plusDays(1)
-            }
-
-            val startIntent = Intent(context, LunchDndReceiver::class.java).apply {
-                action = LunchDndReceiver.ACTION_LUNCH_DND_START
-            }
-            val startPendingIntent = PendingIntent.getBroadcast(
-                context, LUNCH_DND_START_NOTIFICATION_ID, startIntent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-
-            val endIntent = Intent(context, LunchDndReceiver::class.java).apply {
-                action = LunchDndReceiver.ACTION_LUNCH_DND_END
-            }
-            val endPendingIntent = PendingIntent.getBroadcast(
-                context, LUNCH_DND_END_NOTIFICATION_ID, endIntent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(startDateTime.toInstant().toEpochMilli(), startPendingIntent), startPendingIntent)
-                alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(endDateTime.toInstant().toEpochMilli(), endPendingIntent), endPendingIntent)
-            } else {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, startDateTime.toInstant().toEpochMilli(), startPendingIntent)
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endDateTime.toInstant().toEpochMilli(), endPendingIntent)
-            }
-            Log.d("MobileNotificationHelper", "Lunch DND alarms set for $startTimeStr and $endTimeStr")
-        } catch (e: Exception) {
-            Log.e("MobileNotificationHelper", "Failed to schedule Lunch DND reminders", e)
         }
     }
 
@@ -327,11 +239,7 @@ class MobileNotificationHelper(private val context: Context) {
         }
     }
 
-    fun postLiveUpdateNotification(
-        offWorkTimeMillis: Long,
-        title: String = "下班時間倒數",
-        text: String = "再過不久就可以下班囉"
-    ) {
+    fun postLiveUpdateNotification(offWorkTimeMillis: Long) {
         try {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val intent = Intent(context, MainActivity::class.java)
@@ -339,69 +247,24 @@ class MobileNotificationHelper(private val context: Context) {
                 context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
 
-            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_cloud_clock)
-                .setContentTitle(title)
-                .setContentText(text)
-                .setSubText("Live Update")
+                .setContentTitle("下班時間倒數")
+                .setContentText("距離可下班時間即時倒數中")
+                .setSubText("即時更新")
                 .setUsesChronometer(true)
                 .setChronometerCountDown(true)
                 .setWhen(offWorkTimeMillis)
                 .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_PROGRESS)
                 .setContentIntent(pendingIntent)
-                .setGroupSummary(false)
-                .setColorized(false)
+                .build()
 
-            if (Build.VERSION.SDK_INT >= 35) {
-                builder.setRequestPromotedOngoing(true)
-            } else {
-                builder.extras.putBoolean("android.requestPromotedOngoing", true)
-            }
-
-            manager.notify(LIVE_UPDATE_NOTIFICATION_ID, builder.build())
-            Log.d("MobileNotificationHelper", "Promoted Live Update notification posted with dynamic Chronometer Status Chip")
+            manager.notify(LIVE_UPDATE_NOTIFICATION_ID, notification)
+            Log.d("MobileNotificationHelper", "Live Update notification posted")
         } catch (e: Exception) {
-            Log.e("MobileNotificationHelper", "Failed to post Promoted Live Update notification", e)
-        }
-    }
-
-    fun transformLiveUpdateToOffWork() {
-        try {
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val intent = Intent(context, MainActivity::class.java)
-            val pendingIntent = PendingIntent.getActivity(
-                context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-
-            val punchIntent = Intent(context, OffWorkNotificationActionReceiver::class.java).apply {
-                action = OffWorkNotificationActionReceiver.ACTION_OFF_WORK_PUNCH
-            }
-            val punchPendingIntent = PendingIntent.getBroadcast(
-                context, 1002, punchIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-
-            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_cloud_clock)
-                .setContentTitle("可以下班囉!")
-                .setContentText("記得打卡")
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
-                .setAutoCancel(true)
-                .setOngoing(false)
-                .setUsesChronometer(false)
-                .setContentIntent(pendingIntent)
-                .addAction(
-                    R.drawable.ic_cloud_clock,
-                    "立即打卡",
-                    punchPendingIntent
-                )
-
-            manager.notify(LIVE_UPDATE_NOTIFICATION_ID, builder.build())
-            Log.d("MobileNotificationHelper", "Transformed Live Update into off-work punch notification in-place")
-        } catch (e: Exception) {
-            Log.e("MobileNotificationHelper", "Failed to transform Live Update notification", e)
+            Log.e("MobileNotificationHelper", "Failed to post Live Update notification", e)
         }
     }
 
@@ -574,37 +437,8 @@ class NotificationReceiver : BroadcastReceiver() {
             } else if (requestCode == MobileNotificationHelper.ADVANCE_NOTIFICATION_ID && useLiveUpdates && offWorkTimeMillis > 0) {
                 helper.postLiveUpdateNotification(offWorkTimeMillis)
             } else if (requestCode == MobileNotificationHelper.OFF_WORK_NOTIFICATION_ID) {
-                val pendingResult = try { goAsync() } catch (_: Exception) { null }
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val storage = AppStorage(context)
-                        val notifyBefore = storage.notifyBeforeOffWork.first()
-                        val useLiveUpdates = storage.useLiveUpdates.first()
-                        val notifyOn = storage.notifyOnOffWork.first()
-
-                        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                        val activeNotifications = try { manager.activeNotifications } catch (_: Exception) { emptyArray() }
-                        val isLiveUpdateActive = activeNotifications.any { it.id == MobileNotificationHelper.LIVE_UPDATE_NOTIFICATION_ID }
-
-                        Log.d("NotificationReceiver", "OFF_WORK_NOTIFICATION_ID triggered: notifyBefore=$notifyBefore, useLiveUpdates=$useLiveUpdates, notifyOn=$notifyOn, isLiveUpdateActive=$isLiveUpdateActive")
-
-                        if (notifyBefore && useLiveUpdates && isLiveUpdateActive) {
-                            // Scenario 2 & Scenario 3A: Live Update active -> Transform in-place!
-                            helper.transformLiveUpdateToOffWork()
-                        } else if (notifyOn) {
-                            // Scenario 3B (Live Update dismissed) OR Live Update OFF & 可下班通知 ON
-                            helper.cancelLiveUpdateNotification()
-                            helper.sendNotification("可下班通知", "您已達到 9 小時工作時間，記得打下班卡哦！", MobileNotificationHelper.OFF_WORK_NOTIFICATION_ID)
-                        } else {
-                            // Scenario 1 OR Live Update dismissed & 可下班通知 OFF
-                            helper.cancelLiveUpdateNotification()
-                        }
-                    } catch (e: Exception) {
-                        Log.e("NotificationReceiver", "Error handling off work alarm", e)
-                    } finally {
-                        pendingResult?.finish()
-                    }
-                }
+                helper.cancelLiveUpdateNotification()
+                helper.sendNotification(title, message, MobileNotificationHelper.OFF_WORK_NOTIFICATION_ID)
             } else {
                 val targetId = when (requestCode) {
                     MobileNotificationHelper.FISH_OIL_NOTIFICATION_ID -> MobileNotificationHelper.FISH_OIL_NOTIFICATION_ID

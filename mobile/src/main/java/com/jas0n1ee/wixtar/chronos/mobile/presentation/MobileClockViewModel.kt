@@ -56,6 +56,12 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     val autoClockOutEnabled = storage.autoClockOutEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val autoPunchPauseDays = storage.autoPunchPauseDays.stateIn(viewModelScope, SharingStarted.Eagerly, "")
 
+    val lunchDndEnabled = storage.lunchDndEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val lunchDndStartTime = storage.lunchDndStartTime.stateIn(viewModelScope, SharingStarted.Eagerly, "12:00")
+    val lunchDndEndTime = storage.lunchDndEndTime.stateIn(viewModelScope, SharingStarted.Eagerly, "13:00")
+
+    val mockOffWorkTime = storage.mockOffWorkTime.stateIn(viewModelScope, SharingStarted.Eagerly, "17:30")
+
     private val _cloudInTime = MutableStateFlow<String?>(null)
     private val _cloudOutTime = MutableStateFlow<String?>(null)
     private val _cloudDate = MutableStateFlow<String?>(null)
@@ -127,6 +133,43 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun triggerMockLiveUpdateNotification(mockTimeStr: String) {
+        viewModelScope.launch {
+            try {
+                val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                val targetTime = java.time.LocalTime.parse(mockTimeStr.trim(), formatter)
+                val now = java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault())
+
+                var targetDateTime = now
+                    .withHour(targetTime.hour)
+                    .withMinute(targetTime.minute)
+                    .withSecond(0)
+
+                if (targetDateTime.isBefore(now) && targetDateTime.plusMinutes(1).isBefore(now)) {
+                    targetDateTime = targetDateTime.plusDays(1)
+                }
+
+                val targetMillis = targetDateTime.toInstant().toEpochMilli()
+
+                notificationHelper.scheduleReminders(
+                    clockInTimeStr = "",
+                    advanceMinutes = notifyAdvanceMinutes.value,
+                    useLiveUpdates = useLiveUpdates.value,
+                    mockOffWorkTimeStr = mockTimeStr
+                )
+
+                notificationHelper.postLiveUpdateNotification(
+                    offWorkTimeMillis = targetMillis,
+                    title = "下班時間倒數",
+                    text = "再過不久就可以下班囉"
+                )
+                _message.value = "已發送測試 Live Update 通知 (模擬下班時間: $mockTimeStr)"
+            } catch (e: Exception) {
+                _error.value = "發送測試通知失敗: ${e.message}"
+            }
+        }
+    }
+
     fun startHrHealthRetryLoop() {
         if (hrRetryJob?.isActive == true) return
         hrRetryJob = viewModelScope.launch {
@@ -151,6 +194,25 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     fun stopHrHealthRetryLoop() {
         hrRetryJob?.cancel()
         hrRetryJob = null
+    }
+
+    fun checkAndClearExpiredClockData() {
+        viewModelScope.launch {
+            val today = LocalDate.now().toString()
+            val lastDate = storage.lastClockDate.first()
+
+            if (lastDate != null && lastDate != today) {
+                Log.d("MobileClockViewModel", "Detected expired clock data from date: $lastDate (today: $today). Clearing...")
+                _cloudInTime.value = null
+                _cloudOutTime.value = null
+                _cloudDate.value = null
+                storage.clearClockDataIfExpired()
+            } else if (_cloudDate.value != null && _cloudDate.value != today) {
+                _cloudInTime.value = null
+                _cloudOutTime.value = null
+                _cloudDate.value = null
+            }
+        }
     }
 
     fun checkHrHealth() {
@@ -184,25 +246,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    fun checkAndClearExpiredClockData() {
-        viewModelScope.launch {
-            val today = LocalDate.now().toString()
-            val lastDate = storage.lastClockDate.first()
-
-            if (lastDate != null && lastDate != today) {
-                Log.d("MobileClockViewModel", "Detected expired clock data from date: $lastDate (today: $today). Clearing...")
-                _cloudInTime.value = null
-                _cloudOutTime.value = null
-                _cloudDate.value = null
-                storage.clearClockDataIfExpired()
-            } else if (_cloudDate.value != null && _cloudDate.value != today) {
-                _cloudInTime.value = null
-                _cloudOutTime.value = null
-                _cloudDate.value = null
-            }
-        }
-    }
-
     fun fetchCloudData() {
         viewModelScope.launch {
             _isRefreshing.value = true
@@ -230,6 +273,12 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun saveAutoPunchPauseDays(daysCsv: String) {
+        viewModelScope.launch {
+            storage.saveAutoPunchPauseDays(daysCsv)
+        }
+    }
+
     fun saveSettings(
         empIdVal: String,
         passVal: String,
@@ -250,7 +299,11 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         flexibleClockInVal: Boolean = false,
         flexibleStartVal: String = "08:30",
         flexibleEndVal: String = "09:30",
-        autoClockOutVal: Boolean = false
+        autoClockOutVal: Boolean = false,
+        lunchDndEnabledVal: Boolean = false,
+        lunchDndStartTimeVal: String = "12:00",
+        lunchDndEndTimeVal: String = "13:00",
+        mockOffWorkTimeVal: String = "17:30"
     ) {
         viewModelScope.launch {
             storage.saveSettings(
@@ -273,10 +326,27 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 flexibleClockInVal,
                 workStartVal, // flexibleStart mirrors workStart
                 flexibleEndVal,
-                autoClockOutVal
+                autoClockOutVal,
+                lunchDndEnabledVal,
+                lunchDndStartTimeVal,
+                lunchDndEndTimeVal,
+                mockOffWorkTimeVal
             )
 
             com.jas0n1ee.wixtar.chronos.mobile.worker.AutoPunchScheduler.scheduleAutoPunch(getApplication())
+
+            if (notifyBeforeVal || notifyOnVal) {
+                notificationHelper.scheduleReminders(
+                    clockInTimeStr = clockInTime.value ?: "",
+                    advanceMinutes = advanceMinutesVal,
+                    useLiveUpdates = useLiveUpdatesVal,
+                    mockOffWorkTimeStr = mockOffWorkTimeVal
+                )
+            }
+
+            if (lunchDndEnabledVal) {
+                notificationHelper.scheduleLunchDndReminders(lunchDndStartTimeVal, lunchDndEndTimeVal)
+            }
 
             if (forgetClockOutEnabledVal) {
                 notificationHelper.scheduleForgetClockOutReminders(forgetClockOutTimeVal)
@@ -298,12 +368,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     notifyOn = notifyOnVal
                 )
             }
-        }
-    }
-
-    fun saveAutoPunchPauseDays(daysCsv: String) {
-        viewModelScope.launch {
-            storage.saveAutoPunchPauseDays(daysCsv)
         }
     }
 
@@ -506,7 +570,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 val time = result.getOrNull() ?: ""
                 if (isClockingInAction) {
                     storage.saveClockIn(time)
-                    notificationHelper.scheduleReminders(time, notifyAdvanceMinutes.value, useLiveUpdates.value)
+                    notificationHelper.scheduleReminders(time, notifyAdvanceMinutes.value, useLiveUpdates.value, mockOffWorkTime.value)
                     _message.value = "打卡成功: 上班卡 ($time)"
                 } else {
                     storage.saveClockOut(time)
@@ -546,6 +610,14 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
 
     fun requestIgnoreBatteryOptimizations() {
         notificationHelper.requestIgnoreBatteryOptimizations()
+    }
+
+    fun isNotificationPolicyAccessGranted(): Boolean {
+        return notificationHelper.isNotificationPolicyAccessGranted()
+    }
+
+    fun openNotificationPolicySettings() {
+        notificationHelper.openNotificationPolicySettings()
     }
 
     fun clearError() {

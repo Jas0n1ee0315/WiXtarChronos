@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MyLocation
@@ -55,15 +54,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.MobileClockViewModel
-import com.jas0n1ee.wixtar.chronos.mobile.shortcut.AssistantShortcutManager
 
 enum class SettingsSubCategory(val title: String) {
     MAIN("系統設定"),
     AUTH("打卡驗證資訊"),
     NOTIFICATIONS("推播通知"),
     AUTO_CLOCK("自動打卡功能"),
-    WEAR_OS("WearOS 整合"),
-    CUSTOM_ICON("個性桌面圖示")
+    WEAR_OS("WearOS 整合")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -121,6 +118,12 @@ fun MobileSettingsScreen(
     val flexibleEnd by viewModel.flexibleEndTime.collectAsState()
     val autoClockOut by viewModel.autoClockOutEnabled.collectAsState()
 
+    val lunchDndEnabled by viewModel.lunchDndEnabled.collectAsState()
+    val lunchDndStartTime by viewModel.lunchDndStartTime.collectAsState()
+    val lunchDndEndTime by viewModel.lunchDndEndTime.collectAsState()
+
+    val mockOffWorkTime by viewModel.mockOffWorkTime.collectAsState()
+
     var tempEmpId by remember(empId) { mutableStateOf(empId) }
     var tempPassword by remember(password) { mutableStateOf(password) }
     var tempCookie by remember(cookie) { mutableStateOf(cookie) }
@@ -144,14 +147,21 @@ fun MobileSettingsScreen(
     var tempFlexibleEnd by remember(flexibleEnd) { mutableStateOf(flexibleEnd) }
     var tempAutoClockOut by remember(autoClockOut) { mutableStateOf(autoClockOut) }
 
+    var tempLunchDndEnabled by remember(lunchDndEnabled) { mutableStateOf(lunchDndEnabled) }
+    var tempLunchDndStartTime by remember(lunchDndStartTime) { mutableStateOf(lunchDndStartTime) }
+    var tempLunchDndEndTime by remember(lunchDndEndTime) { mutableStateOf(lunchDndEndTime) }
+
+    var tempMockOffWorkTime by remember(mockOffWorkTime) { mutableStateOf(mockOffWorkTime) }
+
     var isPasswordVisible by remember { mutableStateOf(false) }
     var advanceDropdownExpanded by remember { mutableStateOf(false) }
     
     var showTimePickerDialog by remember { mutableStateOf(false) }
-    var activeTimePickerTarget by remember { mutableStateOf("FISH_OIL") } // "FISH_OIL", "FORGET_CLOCK_OUT", "WORK_START", "FLEXIBLE_END"
+    var activeTimePickerTarget by remember { mutableStateOf("FISH_OIL") }
 
     var showPowerWarningDialog by remember { mutableStateOf(false) }
     var showBatteryOptimizationDialog by remember { mutableStateOf(false) }
+    var showDndPermissionDialog by remember { mutableStateOf(false) }
     var pendingToggleTarget by remember { mutableStateOf<String?>(null) }
 
     fun autoSave(
@@ -173,14 +183,20 @@ fun MobileSettingsScreen(
         workStartVal: String = tempWorkStart,
         flexibleClockInVal: Boolean = tempFlexibleClockIn,
         flexibleEndVal: String = tempFlexibleEnd,
-        autoClockOutVal: Boolean = tempAutoClockOut
+        autoClockOutVal: Boolean = tempAutoClockOut,
+        lunchDndEnabledVal: Boolean = tempLunchDndEnabled,
+        lunchDndStartTimeVal: String = tempLunchDndStartTime,
+        lunchDndEndTimeVal: String = tempLunchDndEndTime,
+        mockOffWorkTimeVal: String = tempMockOffWorkTime
     ) {
         viewModel.saveSettings(
             empIdVal, passVal, cookieVal, encVal, gpsVal,
             notifyBeforeVal, notifyOnVal, advanceMinutesVal, useLiveUpdatesVal,
             forgetClockOutEnabledVal, forgetClockOutTimeVal,
             fishOilEnabledVal, fishOilTimeVal, fishOilDaysVal,
-            autoClockInVal, workStartVal, flexibleClockInVal, workStartVal, flexibleEndVal, autoClockOutVal
+            autoClockInVal, workStartVal, flexibleClockInVal, workStartVal, flexibleEndVal, autoClockOutVal,
+            lunchDndEnabledVal, lunchDndStartTimeVal, lunchDndEndTimeVal,
+            mockOffWorkTimeVal
         )
     }
 
@@ -230,6 +246,9 @@ fun MobileSettingsScreen(
             "FORGET_CLOCK_OUT" -> tempForgetClockOutTime
             "WORK_START" -> tempWorkStart
             "FLEXIBLE_END" -> tempFlexibleEnd
+            "LUNCH_DND_START" -> tempLunchDndStartTime
+            "LUNCH_DND_END" -> tempLunchDndEndTime
+            "MOCK_OFF_WORK" -> tempMockOffWorkTime
             else -> "08:30"
         }
         val initialParts = currentTimeStr.split(":")
@@ -238,6 +257,9 @@ fun MobileSettingsScreen(
             "FORGET_CLOCK_OUT" -> 18
             "WORK_START" -> 8
             "FLEXIBLE_END" -> 9
+            "LUNCH_DND_START" -> 12
+            "LUNCH_DND_END" -> 13
+            "MOCK_OFF_WORK" -> 17
             else -> 8
         }
         val defaultMinute = when (activeTimePickerTarget) {
@@ -245,6 +267,9 @@ fun MobileSettingsScreen(
             "FORGET_CLOCK_OUT" -> 30
             "WORK_START" -> 30
             "FLEXIBLE_END" -> 30
+            "LUNCH_DND_START" -> 0
+            "LUNCH_DND_END" -> 0
+            "MOCK_OFF_WORK" -> 30
             else -> 30
         }
         val initialHour = initialParts.getOrNull(0)?.toIntOrNull() ?: defaultHour
@@ -263,7 +288,6 @@ fun MobileSettingsScreen(
                     var hour = timePickerState.hour
                     var minute = timePickerState.minute
 
-                    // Capped at 09:30 for FLEXIBLE_END
                     if (activeTimePickerTarget == "FLEXIBLE_END") {
                         if (hour > 9 || (hour == 9 && minute > 30)) {
                             hour = 9
@@ -288,6 +312,18 @@ fun MobileSettingsScreen(
                         "FLEXIBLE_END" -> {
                             tempFlexibleEnd = formatted
                             autoSave(flexibleEndVal = formatted)
+                        }
+                        "LUNCH_DND_START" -> {
+                            tempLunchDndStartTime = formatted
+                            autoSave(lunchDndStartTimeVal = formatted)
+                        }
+                        "LUNCH_DND_END" -> {
+                            tempLunchDndEndTime = formatted
+                            autoSave(lunchDndEndTimeVal = formatted)
+                        }
+                        "MOCK_OFF_WORK" -> {
+                            tempMockOffWorkTime = formatted
+                            autoSave(mockOffWorkTimeVal = formatted)
                         }
                     }
                 }) {
@@ -378,6 +414,31 @@ fun MobileSettingsScreen(
         )
     }
 
+    if (showDndPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showDndPermissionDialog = false },
+            title = { Text("需要勿擾模式存取權限", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("開啟「上班日午休勿擾」功能需要允許 App 存取系統勿擾模式 (Do Not Disturb)。\n\n點擊「前往授權」將會開啟系統設定中的「勿擾模式存取權限」頁面。")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDndPermissionDialog = false
+                        viewModel.openNotificationPolicySettings()
+                    }
+                ) {
+                    Text("前往授權")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDndPermissionDialog = false }) {
+                    Text("稍後設定")
+                }
+            }
+        )
+    }
+
     AnimatedContent(
         targetState = currentSubCategory,
         transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -416,7 +477,7 @@ fun MobileSettingsScreen(
 
                     SettingsMenuItemCard(
                         title = "自動打卡功能",
-                        subtitle = "定時自動打卡與流程設定",
+                        subtitle = "定時自動打卡與上班日午休勿擾設定",
                         icon = Icons.Default.AutoMode,
                         onClick = { currentSubCategory = SettingsSubCategory.AUTO_CLOCK }
                     )
@@ -426,13 +487,6 @@ fun MobileSettingsScreen(
                         subtitle = "手錶連動開關、裝置狀態與資料同步",
                         icon = Icons.Default.Watch,
                         onClick = { currentSubCategory = SettingsSubCategory.WEAR_OS }
-                    )
-
-                    SettingsMenuItemCard(
-                        title = "個性桌面圖示",
-                        subtitle = "切換應用程式桌面圖示風格",
-                        icon = Icons.Default.Palette,
-                        onClick = { currentSubCategory = SettingsSubCategory.CUSTOM_ICON }
                     )
                 }
             }
@@ -739,7 +793,7 @@ fun MobileSettingsScreen(
 
                             HorizontalDivider()
 
-                            // 3. 忘記打卡補救提醒 (NEW)
+                            // 3. 忘記打卡補救提醒
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -911,6 +965,53 @@ fun MobileSettingsScreen(
                                     }
                                 }
                             }
+
+                            HorizontalDivider()
+
+                            // 5. 模擬下班時間 (測試 Live Update 用)
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("模擬下班時間 (測試 Live Update)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                Text("僅用於測試 Live Update 倒數推播效果，即便開啟自動打卡亦絕不發起真實打卡", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        onClick = {
+                                            activeTimePickerTarget = "MOCK_OFF_WORK"
+                                            showTimePickerDialog = true
+                                        },
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = MaterialTheme.colorScheme.secondaryContainer
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = tempMockOffWorkTime,
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                        }
+                                    }
+
+                                    Button(
+                                        onClick = { viewModel.triggerMockLiveUpdateNotification(tempMockOffWorkTime) },
+                                        shape = RoundedCornerShape(16.dp)
+                                    ) {
+                                        Text("發送測試通知")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1065,7 +1166,7 @@ fun MobileSettingsScreen(
 
                                     Text("~", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-                                    // End Time (capped at 09:30)
+                                    // End Time
                                     Surface(
                                         onClick = {
                                             if (tempAutoClockIn && tempFlexibleClockIn) {
@@ -1110,6 +1211,34 @@ fun MobileSettingsScreen(
                                         autoSave(autoClockOutVal = checked, notifyOnVal = tempNotifyOn)
                                         if (checked && !isIgnoringBattery) {
                                             showBatteryOptimizationDialog = true
+                                        }
+                                    }
+                                )
+                            }
+
+                            HorizontalDivider()
+
+                            // 6. 上班日午休勿擾 Switch
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("上班日午休勿擾", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                    Text("每日 12:00 自動檢查若今日有打上班卡，則自動開啟勿擾模式，並於 13:00 自動關閉", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = tempLunchDndEnabled,
+                                    onCheckedChange = { checked ->
+                                        tempLunchDndEnabled = checked
+                                        autoSave(lunchDndEnabledVal = checked)
+                                        if (checked) {
+                                            if (!viewModel.isNotificationPolicyAccessGranted()) {
+                                                showDndPermissionDialog = true
+                                            } else if (!isIgnoringBattery) {
+                                                showBatteryOptimizationDialog = true
+                                            }
                                         }
                                     }
                                 )
@@ -1245,53 +1374,6 @@ fun MobileSettingsScreen(
                                         Icon(Icons.Default.CloudDownload, contentDescription = null)
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("重新載入並推送至手錶", style = MaterialTheme.typography.labelLarge)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            SettingsSubCategory.CUSTOM_ICON -> {
-                Column(
-                    modifier = modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    SettingsSubHeader(
-                        title = "個性桌面圖示",
-                        onBack = { currentSubCategory = SettingsSubCategory.MAIN }
-                    )
-
-                    ElevatedCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text("圖示風格預覽", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Icon(Icons.Default.Palette, contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
-                                    Column {
-                                        Text("經典品牌紅色標誌", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                        Text("相容 Android 8.0+ 適應性圖示 (Adaptive Icon)", style = MaterialTheme.typography.bodySmall)
                                     }
                                 }
                             }

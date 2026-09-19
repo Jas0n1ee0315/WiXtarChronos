@@ -68,20 +68,18 @@ fun PunchCardScreen(
         viewModel.checkAndClearExpiredClockData()
     }
 
-    val offWorkTimeStr = remember(clockInTime, clockOutTime) {
-        if (clockInTime.isNullOrBlank()) {
-            "尚無進卡紀錄"
-        } else if (!clockOutTime.isNullOrBlank()) {
-            "今日打卡完成"
-        } else {
+    val offWorkTimeStr = remember(clockInTime) {
+        if (!clockInTime.isNullOrBlank()) {
             try {
                 val rawTime = clockInTime?.substringBefore(" ") ?: ""
                 val formatter = DateTimeFormatter.ofPattern("HH:mm")
                 val time = LocalTime.parse(rawTime, formatter)
                 time.plusHours(9).format(formatter)
             } catch (e: Exception) {
-                "尚無進卡紀錄"
+                ""
             }
+        } else {
+            ""
         }
     }
 
@@ -263,34 +261,36 @@ fun PunchCardScreen(
                         }
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    if (!clockInTime.isNullOrBlank() && clockOutTime.isNullOrBlank()) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                    // Expected Off-Work Time
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.AccessTime,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                        // Expected Off-Work Time
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.AccessTime,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "預計可下班時間",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             Text(
-                                text = "預計可下班時間",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = offWorkTimeStr,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        Text(
-                            text = offWorkTimeStr,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
                     }
                 }
             }

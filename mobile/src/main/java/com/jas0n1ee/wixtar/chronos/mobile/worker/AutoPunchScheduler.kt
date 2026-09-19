@@ -77,7 +77,7 @@ object AutoPunchScheduler {
                         val outTime = inTime.plusHours(9)
 
                         val now = LocalDateTime.now()
-                        var targetOutDateTime = now.withHour(outTime.hour).withMinute(outTime.minute).withSecond(0).withNano(0)
+                        var targetOutDateTime = now.withHour(outTime.hour).withMinute(outTime.minute).withSecond(0).withNano(0).plusSeconds(5)
 
                         if (targetOutDateTime.isBefore(now)) {
                             targetOutDateTime = now.plusSeconds(5)

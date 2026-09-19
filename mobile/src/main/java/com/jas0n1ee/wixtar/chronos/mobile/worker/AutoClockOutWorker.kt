@@ -21,6 +21,7 @@ import com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidgetCircleProvider
 import com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidgetCircleTranslucentProvider
 import com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidgetStadiumProvider
 import com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidgetStadiumTranslucentProvider
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 
 class AutoClockOutWorker(
@@ -49,11 +50,14 @@ class AutoClockOutWorker(
         val enc = storage.enc.first()
         val gps = storage.gpsLocation.first()
 
+        // Delay 5 seconds to prevent clock skew with HR server
+        delay(5000)
+
         val punchResult = repository.clockIn(empId, pass, cookie, enc, gps)
         if (punchResult.isSuccess) {
             val time = punchResult.getOrNull() ?: ""
             storage.saveClockOut(time)
-            notificationHelper.sendNotification("WiXtar 自動打卡成功", "已成功打下班卡 ($time)")
+            notificationHelper.sendAutoClockOutSuccessNotification(time)
             updateAllWidgets(applicationContext)
         } else {
             val errorMsg = punchResult.exceptionOrNull()?.message ?: "自動打下班卡失敗"

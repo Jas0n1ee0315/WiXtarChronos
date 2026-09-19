@@ -52,8 +52,6 @@ class AppStorage(private val context: Context) {
         val LUNCH_DND_ENABLED = booleanPreferencesKey("lunch_dnd_enabled")
         val LUNCH_DND_START_TIME = stringPreferencesKey("lunch_dnd_start_time")
         val LUNCH_DND_END_TIME = stringPreferencesKey("lunch_dnd_end_time")
-
-        val MOCK_OFF_WORK_TIME = stringPreferencesKey("mock_off_work_time")
     }
 
     val empId: Flow<String> = context.dataStore.data.map { it[EMP_ID] ?: "" }
@@ -69,7 +67,7 @@ class AppStorage(private val context: Context) {
     val enableWatchSync: Flow<Boolean> = context.dataStore.data.map { it[ENABLE_WATCH_SYNC] ?: false }
 
     val forgetClockOutNotifyEnabled: Flow<Boolean> = context.dataStore.data.map { it[FORGET_CLOCK_OUT_NOTIFY_ENABLED] ?: false }
-    val forgetClockOutNotifyTime: Flow<String> = context.dataStore.data.map { it[FORGET_CLOCK_OUT_NOTIFY_TIME] ?: "18:30" }
+    val forgetClockOutNotifyTime: Flow<String> = context.dataStore.data.map { it[FORGET_CLOCK_OUT_NOTIFY_TIME] ?: "21:00" }
 
     val fishOilNotifyEnabled: Flow<Boolean> = context.dataStore.data.map { it[FISH_OIL_NOTIFY_ENABLED] ?: false }
     val fishOilNotifyTime: Flow<String> = context.dataStore.data.map { it[FISH_OIL_NOTIFY_TIME] ?: "13:10" }
@@ -87,8 +85,6 @@ class AppStorage(private val context: Context) {
     val lunchDndEnabled: Flow<Boolean> = context.dataStore.data.map { it[LUNCH_DND_ENABLED] ?: false }
     val lunchDndStartTime: Flow<String> = context.dataStore.data.map { it[LUNCH_DND_START_TIME] ?: "12:00" }
     val lunchDndEndTime: Flow<String> = context.dataStore.data.map { it[LUNCH_DND_END_TIME] ?: "13:00" }
-
-    val mockOffWorkTime: Flow<String> = context.dataStore.data.map { it[MOCK_OFF_WORK_TIME] ?: "17:30" }
 
     val lastClockDate: Flow<String?> = context.dataStore.data.map { it[LAST_CLOCK_DATE] }
 
@@ -114,7 +110,7 @@ class AppStorage(private val context: Context) {
         advanceMinutes: Int = 10,
         useLiveUpdates: Boolean = false,
         forgetClockOutEnabled: Boolean = false,
-        forgetClockOutTime: String = "18:30",
+        forgetClockOutTime: String = "21:00",
         fishOilEnabled: Boolean = false,
         fishOilTime: String = "13:10",
         fishOilDays: String = "1,2,3,4,5,6,7",
@@ -126,8 +122,7 @@ class AppStorage(private val context: Context) {
         autoClockOut: Boolean = false,
         lunchDndEnabled: Boolean = false,
         lunchDndStartTime: String = "12:00",
-        lunchDndEndTime: String = "13:00",
-        mockOffWorkTime: String = "17:30"
+        lunchDndEndTime: String = "13:00"
     ) {
         context.dataStore.edit { prefs ->
             prefs[EMP_ID] = empId
@@ -137,7 +132,7 @@ class AppStorage(private val context: Context) {
             prefs[GPS_LOCATION] = gps
             prefs[NOTIFY_BEFORE_OFF_WORK] = notifyBefore
             // When autoClockOut is enabled, notifyOn (滿9小時可下班通知) is turned off
-            prefs[NOTIFY_ON_OFF_WORK] = if (autoClockOut) false else notifyOn
+            prefs[NOTIFY_ON_OFF_WORK] = notifyOn
             prefs[NOTIFY_ADVANCE_MINUTES] = advanceMinutes
             prefs[USE_LIVE_UPDATES] = useLiveUpdates
             prefs[FORGET_CLOCK_OUT_NOTIFY_ENABLED] = forgetClockOutEnabled
@@ -154,7 +149,6 @@ class AppStorage(private val context: Context) {
             prefs[LUNCH_DND_ENABLED] = lunchDndEnabled
             prefs[LUNCH_DND_START_TIME] = lunchDndStartTime
             prefs[LUNCH_DND_END_TIME] = lunchDndEndTime
-            prefs[MOCK_OFF_WORK_TIME] = mockOffWorkTime
         }
     }
 

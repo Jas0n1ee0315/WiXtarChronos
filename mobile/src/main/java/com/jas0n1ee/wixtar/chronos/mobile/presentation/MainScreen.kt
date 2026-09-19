@@ -13,7 +13,7 @@ import com.jas0n1ee.wixtar.chronos.mobile.presentation.screens.MobileSettingsScr
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.screens.PunchCardScreen
 
 enum class MobileTab(val title: String) {
-    PUNCH_CARD("簽到打卡"),
+    PUNCH_CARD("線上打卡"),
     SETTINGS("系統設定")
 }
 
@@ -53,7 +53,7 @@ fun MainScreen(viewModel: MobileClockViewModel) {
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
-                            text = "WiXtar 打卡",
+                            text = "線上打卡",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -71,7 +71,7 @@ fun MainScreen(viewModel: MobileClockViewModel) {
                 NavigationBarItem(
                     selected = selectedTab == MobileTab.PUNCH_CARD,
                     onClick = { selectedTab = MobileTab.PUNCH_CARD },
-                    icon = { Icon(painterResource(id = R.drawable.ic_briefcase_clock), contentDescription = null) },
+                    icon = { Icon(painterResource(id = R.drawable.ic_cloud_clock), contentDescription = null) },
                     label = { Text(MobileTab.PUNCH_CARD.title) }
                 )
                 NavigationBarItem(

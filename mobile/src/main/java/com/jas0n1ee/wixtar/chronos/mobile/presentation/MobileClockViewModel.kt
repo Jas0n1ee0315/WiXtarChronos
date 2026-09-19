@@ -42,7 +42,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     val enableWatchSync = storage.enableWatchSync.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     val forgetClockOutNotifyEnabled = storage.forgetClockOutNotifyEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
-    val forgetClockOutNotifyTime = storage.forgetClockOutNotifyTime.stateIn(viewModelScope, SharingStarted.Eagerly, "18:30")
+    val forgetClockOutNotifyTime = storage.forgetClockOutNotifyTime.stateIn(viewModelScope, SharingStarted.Eagerly, "21:00")
 
     val fishOilNotifyEnabled = storage.fishOilNotifyEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val fishOilNotifyTime = storage.fishOilNotifyTime.stateIn(viewModelScope, SharingStarted.Eagerly, "13:10")
@@ -59,8 +59,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     val lunchDndEnabled = storage.lunchDndEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val lunchDndStartTime = storage.lunchDndStartTime.stateIn(viewModelScope, SharingStarted.Eagerly, "12:00")
     val lunchDndEndTime = storage.lunchDndEndTime.stateIn(viewModelScope, SharingStarted.Eagerly, "13:00")
-
-    val mockOffWorkTime = storage.mockOffWorkTime.stateIn(viewModelScope, SharingStarted.Eagerly, "17:30")
 
     private val _cloudInTime = MutableStateFlow<String?>(null)
     private val _cloudOutTime = MutableStateFlow<String?>(null)
@@ -129,43 +127,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 if (ck.isNotBlank()) {
                     fetchCloudData()
                 }
-            }
-        }
-    }
-
-    fun triggerMockLiveUpdateNotification(mockTimeStr: String) {
-        viewModelScope.launch {
-            try {
-                val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
-                val targetTime = java.time.LocalTime.parse(mockTimeStr.trim(), formatter)
-                val now = java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault())
-
-                var targetDateTime = now
-                    .withHour(targetTime.hour)
-                    .withMinute(targetTime.minute)
-                    .withSecond(0)
-
-                if (targetDateTime.isBefore(now) && targetDateTime.plusMinutes(1).isBefore(now)) {
-                    targetDateTime = targetDateTime.plusDays(1)
-                }
-
-                val targetMillis = targetDateTime.toInstant().toEpochMilli()
-
-                notificationHelper.scheduleReminders(
-                    clockInTimeStr = "",
-                    advanceMinutes = notifyAdvanceMinutes.value,
-                    useLiveUpdates = useLiveUpdates.value,
-                    mockOffWorkTimeStr = mockTimeStr
-                )
-
-                notificationHelper.postLiveUpdateNotification(
-                    offWorkTimeMillis = targetMillis,
-                    title = "下班時間倒數",
-                    text = "再過不久就可以下班囉"
-                )
-                _message.value = "已發送測試 Live Update 通知 (模擬下班時間: $mockTimeStr)"
-            } catch (e: Exception) {
-                _error.value = "發送測試通知失敗: ${e.message}"
             }
         }
     }
@@ -290,7 +251,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         advanceMinutesVal: Int = 10,
         useLiveUpdatesVal: Boolean = false,
         forgetClockOutEnabledVal: Boolean = false,
-        forgetClockOutTimeVal: String = "18:30",
+        forgetClockOutTimeVal: String = "21:00",
         fishOilEnabledVal: Boolean = false,
         fishOilTimeVal: String = "13:10",
         fishOilDaysVal: String = "1,2,3,4,5,6,7",
@@ -302,8 +263,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         autoClockOutVal: Boolean = false,
         lunchDndEnabledVal: Boolean = false,
         lunchDndStartTimeVal: String = "12:00",
-        lunchDndEndTimeVal: String = "13:00",
-        mockOffWorkTimeVal: String = "17:30"
+        lunchDndEndTimeVal: String = "13:00"
     ) {
         viewModelScope.launch {
             storage.saveSettings(
@@ -329,8 +289,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 autoClockOutVal,
                 lunchDndEnabledVal,
                 lunchDndStartTimeVal,
-                lunchDndEndTimeVal,
-                mockOffWorkTimeVal
+                lunchDndEndTimeVal
             )
 
             com.jas0n1ee.wixtar.chronos.mobile.worker.AutoPunchScheduler.scheduleAutoPunch(getApplication())
@@ -339,8 +298,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 notificationHelper.scheduleReminders(
                     clockInTimeStr = clockInTime.value ?: "",
                     advanceMinutes = advanceMinutesVal,
-                    useLiveUpdates = useLiveUpdatesVal,
-                    mockOffWorkTimeStr = mockOffWorkTimeVal
+                    useLiveUpdates = useLiveUpdatesVal
                 )
             }
 
@@ -570,11 +528,11 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 val time = result.getOrNull() ?: ""
                 if (isClockingInAction) {
                     storage.saveClockIn(time)
-                    notificationHelper.scheduleReminders(time, notifyAdvanceMinutes.value, useLiveUpdates.value, mockOffWorkTime.value)
+                    notificationHelper.scheduleReminders(time, notifyAdvanceMinutes.value, useLiveUpdates.value)
                     _message.value = "打卡成功: 上班卡 ($time)"
                 } else {
                     storage.saveClockOut(time)
-                    notificationHelper.cancelLiveUpdateNotification()
+                    notificationHelper.sendClockOutSuccessNotification(time)
                     _message.value = "打卡成功: 下班卡 ($time)"
                 }
 

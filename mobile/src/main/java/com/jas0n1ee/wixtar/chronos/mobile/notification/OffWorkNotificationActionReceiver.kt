@@ -39,8 +39,7 @@ class OffWorkNotificationActionReceiver : BroadcastReceiver() {
                     if (result.isSuccess) {
                         val time = result.getOrNull() ?: ""
                         storage.saveClockOut(time)
-                        notificationHelper.cancelLiveUpdateNotification()
-                        notificationHelper.sendNotification("WiXtar 打卡成功", "已成功打下班卡 ($time)")
+                        notificationHelper.sendClockOutSuccessNotification(time)
                         Log.d("OffWorkActionReceiver", "Punched off-work card successfully: $time")
                     } else {
                         val errorMsg = result.exceptionOrNull()?.message ?: "打卡失敗"

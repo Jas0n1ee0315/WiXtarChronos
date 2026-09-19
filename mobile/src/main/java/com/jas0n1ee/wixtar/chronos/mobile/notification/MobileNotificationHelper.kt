@@ -170,15 +170,12 @@ class MobileNotificationHelper(private val context: Context) {
     fun scheduleReminders(
         clockInTimeStr: String,
         advanceMinutes: Int = 10,
-        useLiveUpdates: Boolean = false,
-        mockOffWorkTimeStr: String = ""
+        useLiveUpdates: Boolean = false
     ) {
         try {
             val formatter = DateTimeFormatter.ofPattern("HH:mm")
             
-            val offWorkTime = if (mockOffWorkTimeStr.isNotBlank()) {
-                LocalTime.parse(mockOffWorkTimeStr.trim(), formatter)
-            } else if (clockInTimeStr.isNotBlank()) {
+            val offWorkTime = if (clockInTimeStr.isNotBlank()) {
                 val clockInTime = LocalTime.parse(clockInTimeStr.substringBefore(" ").trim(), formatter)
                 clockInTime.plusHours(9)
             } else {
@@ -384,8 +381,8 @@ class MobileNotificationHelper(private val context: Context) {
 
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_cloud_clock)
-                .setContentTitle("可以下班囉!")
-                .setContentText("記得打卡")
+                .setContentTitle("可以下班囉，辛苦了")
+                .setContentText("要記得打卡呦")
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setAutoCancel(true)
@@ -394,14 +391,98 @@ class MobileNotificationHelper(private val context: Context) {
                 .setContentIntent(pendingIntent)
                 .addAction(
                     R.drawable.ic_cloud_clock,
-                    "立即打卡",
+                    "打卡",
                     punchPendingIntent
                 )
 
             manager.notify(LIVE_UPDATE_NOTIFICATION_ID, builder.build())
-            Log.d("MobileNotificationHelper", "Transformed Live Update into off-work punch notification in-place")
+            Log.d("MobileNotificationHelper", "Transformed Live Update into off-work prompt notification in-place")
         } catch (e: Exception) {
             Log.e("MobileNotificationHelper", "Failed to transform Live Update notification", e)
+        }
+    }
+
+    fun sendOffWorkPromptNotification() {
+        try {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val intent = Intent(context, MainActivity::class.java)
+            val pendingIntent = PendingIntent.getActivity(
+                context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+            val punchIntent = Intent(context, OffWorkNotificationActionReceiver::class.java).apply {
+                action = OffWorkNotificationActionReceiver.ACTION_OFF_WORK_PUNCH
+            }
+            val punchPendingIntent = PendingIntent.getBroadcast(
+                context, 1002, punchIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_cloud_clock)
+                .setContentTitle("可以下班囉，辛苦了")
+                .setContentText("要記得打卡呦")
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .addAction(
+                    R.drawable.ic_cloud_clock,
+                    "打卡",
+                    punchPendingIntent
+                )
+
+            manager.notify(OFF_WORK_NOTIFICATION_ID, builder.build())
+            Log.d("MobileNotificationHelper", "Sent off-work prompt notification")
+        } catch (e: Exception) {
+            Log.e("MobileNotificationHelper", "Failed to send off-work prompt notification", e)
+        }
+    }
+
+    fun sendClockOutSuccessNotification(time: String) {
+        try {
+            cancelLiveUpdateNotification()
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val intent = Intent(context, MainActivity::class.java)
+            val pendingIntent = PendingIntent.getActivity(
+                context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_cloud_clock)
+                .setContentTitle("打卡成功")
+                .setContentText("時間 $time，可以放心下班")
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+
+            manager.notify(OFF_WORK_NOTIFICATION_ID, builder.build())
+            Log.d("MobileNotificationHelper", "Sent clock out success notification: $time")
+        } catch (e: Exception) {
+            Log.e("MobileNotificationHelper", "Failed to send clock out success notification", e)
+        }
+    }
+
+    fun sendAutoClockOutSuccessNotification(time: String) {
+        try {
+            cancelLiveUpdateNotification()
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val intent = Intent(context, MainActivity::class.java)
+            val pendingIntent = PendingIntent.getActivity(
+                context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_cloud_clock)
+                .setContentTitle("可以下班囉，辛苦了")
+                .setContentText("已在 $time 幫您打卡，可以放心下班")
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+
+            manager.notify(OFF_WORK_NOTIFICATION_ID, builder.build())
+            Log.d("MobileNotificationHelper", "Sent auto clock out success notification: $time")
+        } catch (e: Exception) {
+            Log.e("MobileNotificationHelper", "Failed to send auto clock out success notification", e)
         }
     }
 
@@ -578,9 +659,21 @@ class NotificationReceiver : BroadcastReceiver() {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val storage = AppStorage(context)
+                        val clockOut = storage.clockOutTime.first()
+                        val autoOut = storage.autoClockOutEnabled.first()
                         val notifyBefore = storage.notifyBeforeOffWork.first()
                         val useLiveUpdates = storage.useLiveUpdates.first()
                         val notifyOn = storage.notifyOnOffWork.first()
+
+                        if (!clockOut.isNullOrBlank()) {
+                            helper.cancelLiveUpdateNotification()
+                            return@launch
+                        }
+
+                        if (autoOut) {
+                            // Scenarios 3 & 4: AutoClockOutWorker will handle auto clock-out and notify "已在 xx:xx 幫您打卡，可以放心下班"
+                            return@launch
+                        }
 
                         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                         val activeNotifications = try { manager.activeNotifications } catch (_: Exception) { emptyArray() }
@@ -589,14 +682,14 @@ class NotificationReceiver : BroadcastReceiver() {
                         Log.d("NotificationReceiver", "OFF_WORK_NOTIFICATION_ID triggered: notifyBefore=$notifyBefore, useLiveUpdates=$useLiveUpdates, notifyOn=$notifyOn, isLiveUpdateActive=$isLiveUpdateActive")
 
                         if (notifyBefore && useLiveUpdates && isLiveUpdateActive) {
-                            // Scenario 2 & Scenario 3A: Live Update active -> Transform in-place!
+                            // Scenario 2 with Live Update active: transform in-place
                             helper.transformLiveUpdateToOffWork()
                         } else if (notifyOn) {
-                            // Scenario 3B (Live Update dismissed) OR Live Update OFF & 可下班通知 ON
+                            // Scenario 2 without Live Update active
                             helper.cancelLiveUpdateNotification()
-                            helper.sendNotification("可下班通知", "您已達到 9 小時工作時間，記得打下班卡哦！", MobileNotificationHelper.OFF_WORK_NOTIFICATION_ID)
+                            helper.sendOffWorkPromptNotification()
                         } else {
-                            // Scenario 1 OR Live Update dismissed & 可下班通知 OFF
+                            // Scenario 1: notifyOn == false & autoOut == false
                             helper.cancelLiveUpdateNotification()
                         }
                     } catch (e: Exception) {

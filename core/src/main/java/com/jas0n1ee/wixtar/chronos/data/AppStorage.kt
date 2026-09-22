@@ -1,6 +1,7 @@
 package com.jas0n1ee.wixtar.chronos.data
 
 import android.content.Context
+import androidx.wear.tiles.TileService
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -25,6 +26,8 @@ class AppStorage(private val context: Context) {
         
         val CLOCK_IN_TIME = stringPreferencesKey("clock_in_time")
         val CLOCK_OUT_TIME = stringPreferencesKey("clock_out_time")
+        val CLOCK_IN_SOURCE = stringPreferencesKey("clock_in_source")
+        val CLOCK_OUT_SOURCE = stringPreferencesKey("clock_out_source")
         val LAST_CLOCK_DATE = stringPreferencesKey("last_clock_date")
 
         val NOTIFY_BEFORE_OFF_WORK = booleanPreferencesKey("notify_before_off_work")
@@ -52,6 +55,8 @@ class AppStorage(private val context: Context) {
         val LUNCH_DND_ENABLED = booleanPreferencesKey("lunch_dnd_enabled")
         val LUNCH_DND_START_TIME = stringPreferencesKey("lunch_dnd_start_time")
         val LUNCH_DND_END_TIME = stringPreferencesKey("lunch_dnd_end_time")
+
+        val SELECTED_APP_ICON_INDEX = intPreferencesKey("selected_app_icon_index")
     }
 
     val empId: Flow<String> = context.dataStore.data.map { it[EMP_ID] ?: "" }
@@ -86,6 +91,8 @@ class AppStorage(private val context: Context) {
     val lunchDndStartTime: Flow<String> = context.dataStore.data.map { it[LUNCH_DND_START_TIME] ?: "12:00" }
     val lunchDndEndTime: Flow<String> = context.dataStore.data.map { it[LUNCH_DND_END_TIME] ?: "13:00" }
 
+    val selectedAppIconIndex: Flow<Int> = context.dataStore.data.map { it[SELECTED_APP_ICON_INDEX] ?: 0 }
+
     val lastClockDate: Flow<String?> = context.dataStore.data.map { it[LAST_CLOCK_DATE] }
 
     val clockInTime: Flow<String?> = context.dataStore.data.map { prefs ->
@@ -97,6 +104,17 @@ class AppStorage(private val context: Context) {
         val date = prefs[LAST_CLOCK_DATE]
         val today = LocalDate.now().toString()
         if (date == today) prefs[CLOCK_OUT_TIME] else null
+    }
+
+    val clockInSource: Flow<String> = context.dataStore.data.map { prefs ->
+        val date = prefs[LAST_CLOCK_DATE]
+        val today = LocalDate.now().toString()
+        if (date == today) (prefs[CLOCK_IN_SOURCE] ?: "本地離線") else "本地離線"
+    }
+    val clockOutSource: Flow<String> = context.dataStore.data.map { prefs ->
+        val date = prefs[LAST_CLOCK_DATE]
+        val today = LocalDate.now().toString()
+        if (date == today) (prefs[CLOCK_OUT_SOURCE] ?: "本地離線") else "本地離線"
     }
 
     suspend fun saveSettings(
@@ -158,21 +176,60 @@ class AppStorage(private val context: Context) {
         }
     }
 
-    suspend fun saveClockIn(time: String) {
+    suspend fun saveSelectedAppIconIndex(index: Int) {
         context.dataStore.edit { prefs ->
-            val today = LocalDate.now().toString()
-            prefs[CLOCK_IN_TIME] = time
-            prefs[CLOCK_OUT_TIME] = ""
-            prefs[LAST_CLOCK_DATE] = today
+            prefs[SELECTED_APP_ICON_INDEX] = index
         }
     }
 
+    private fun requestTileUpdate(context: Context) {
+        try {
+            @Suppress("UNCHECKED_CAST")
+            val clazz = Class.forName("com.jas0n1ee.wixtar.chronoswear.tile.MainTileService") as Class<out TileService>
+            TileService.getUpdater(context).requestUpdate(clazz)
+        } catch (_: Exception) {}
+    }
+
+    suspend fun saveClockIn(time: String) {
+        saveClockInWithSource(time, "本地離線")
+    }
+
+    suspend fun saveClockInWithSource(time: String, source: String) {
+        context.dataStore.edit { prefs ->
+            val today = LocalDate.now().toString()
+            prefs[CLOCK_IN_TIME] = time
+            prefs[CLOCK_IN_SOURCE] = source
+            prefs[CLOCK_OUT_TIME] = ""
+            prefs[CLOCK_OUT_SOURCE] = ""
+            prefs[LAST_CLOCK_DATE] = today
+        }
+        requestTileUpdate(context)
+    }
+
     suspend fun saveClockOut(time: String) {
+        saveClockOutWithSource(time, "本地離線")
+    }
+
+    suspend fun saveClockOutWithSource(time: String, source: String) {
         context.dataStore.edit { prefs ->
             val today = LocalDate.now().toString()
             prefs[CLOCK_OUT_TIME] = time
+            prefs[CLOCK_OUT_SOURCE] = source
             prefs[LAST_CLOCK_DATE] = today
         }
+        requestTileUpdate(context)
+    }
+
+    suspend fun saveClockDataWithSources(inTime: String, inSource: String, outTime: String, outSource: String) {
+        context.dataStore.edit { prefs ->
+            val today = LocalDate.now().toString()
+            prefs[CLOCK_IN_TIME] = inTime
+            prefs[CLOCK_IN_SOURCE] = inSource
+            prefs[CLOCK_OUT_TIME] = outTime
+            prefs[CLOCK_OUT_SOURCE] = outSource
+            prefs[LAST_CLOCK_DATE] = today
+        }
+        requestTileUpdate(context)
     }
 
     suspend fun clearClockDataIfExpired() {
@@ -181,9 +238,12 @@ class AppStorage(private val context: Context) {
             val lastDate = prefs[LAST_CLOCK_DATE]
             if (lastDate != null && lastDate != today) {
                 prefs[CLOCK_IN_TIME] = ""
+                prefs[CLOCK_IN_SOURCE] = ""
                 prefs[CLOCK_OUT_TIME] = ""
+                prefs[CLOCK_OUT_SOURCE] = ""
             }
         }
+        requestTileUpdate(context)
     }
 
     suspend fun saveAutoPunchPauseDays(daysCsv: String) {

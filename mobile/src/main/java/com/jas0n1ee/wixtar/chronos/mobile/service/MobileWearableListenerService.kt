@@ -1,9 +1,11 @@
 package com.jas0n1ee.wixtar.chronos.mobile.service
 
 import android.util.Log
+import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.MessageEvent
+import com.google.android.gms.wearable.Wearable
 import com.google.android.gms.wearable.WearableListenerService
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
@@ -12,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class MobileWearableListenerService : WearableListenerService() {
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -55,46 +58,67 @@ class MobileWearableListenerService : WearableListenerService() {
         val storage = AppStorage(applicationContext)
         val repository = ClockRepository(storage)
 
-        if (messageEvent.path == WearableSyncManager.ACTION_PATH) {
+        val nodeId = messageEvent.sourceNodeId
+        val messageClient = Wearable.getMessageClient(applicationContext)
+
+        if (messageEvent.path == "/request_check_hr_health") {
+            scope.launch {
+                val isNormal = repository.checkHrSystemHealth()
+                val response = if (isNormal) "200" else "500"
+                try {
+                    Tasks.await(messageClient.sendMessage(nodeId, "/response_hr_health", response.toByteArray()))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        } else if (messageEvent.path == "/request_punch" || messageEvent.path == WearableSyncManager.ACTION_PATH) {
             val action = String(messageEvent.data)
-            Log.d("MobileWearableListener", "Received action message from Watch: $action")
+            Log.d("MobileWearableListener", "Received action message from Watch: $action (path: ${messageEvent.path})")
 
             scope.launch {
-                when (action) {
-                    "CLOCK_IN", "CLOCK_OUT", "CLOCK_ACTION" -> {
-                        val empId = storage.empId.first()
-                        val pass = storage.password.first()
-                        val cookie = storage.cookie.first()
-                        val enc = storage.enc.first()
-                        val gps = storage.gpsLocation.first()
-
-                        val currentIn = storage.clockInTime.first()
-                        val isClockingIn = currentIn.isNullOrBlank()
-
-                        val result = repository.clockIn(empId, pass, cookie, enc, gps)
-                        if (result.isSuccess) {
-                            val time = result.getOrNull() ?: ""
-                            if (isClockingIn) {
-                                storage.saveClockIn(time)
-                            } else {
-                                storage.saveClockOut(time)
-                            }
-                            val todayStr = java.time.LocalDate.now().toString()
-                            val updatedIn = if (isClockingIn) time else currentIn
-                            val updatedOut = if (!isClockingIn) time else storage.clockOutTime.first()
-                            WearableSyncManager.syncClockStatus(applicationContext, updatedIn, updatedOut, todayStr)
+                if (action == "FETCH_CLOUD") {
+                    val cookie = storage.cookie.first()
+                    if (cookie.isNotBlank()) {
+                        repository.getCloudClockInfo(cookie).onSuccess { (cloudIn, cloudOut, _) ->
+                            cloudIn?.let { storage.saveClockIn(it) }
+                            cloudOut?.let { storage.saveClockOut(it) }
+                            val todayStr = LocalDate.now().toString()
+                            WearableSyncManager.syncClockStatus(applicationContext, cloudIn, cloudOut, todayStr)
                         }
                     }
-                    "FETCH_CLOUD" -> {
-                        val cookie = storage.cookie.first()
-                        if (cookie.isNotBlank()) {
-                            repository.getCloudClockInfo(cookie).onSuccess { (cloudIn, cloudOut, _) ->
-                                cloudIn?.let { storage.saveClockIn(it) }
-                                cloudOut?.let { storage.saveClockOut(it) }
-                                val todayStr = java.time.LocalDate.now().toString()
-                                WearableSyncManager.syncClockStatus(applicationContext, cloudIn, cloudOut, todayStr)
-                            }
+                } else {
+                    val empId = storage.empId.first()
+                    val pass = storage.password.first()
+                    val cookie = storage.cookie.first()
+                    val enc = storage.enc.first()
+                    val gps = storage.gpsLocation.first()
+
+                    val currentIn = storage.clockInTime.first()
+                    val isClockingIn = currentIn.isNullOrBlank()
+
+                    val result = repository.clockIn(empId, pass, cookie, enc, gps)
+                    if (result.isSuccess) {
+                        val time = result.getOrNull() ?: ""
+                        if (isClockingIn) {
+                            storage.saveClockIn(time)
+                        } else {
+                            storage.saveClockOut(time)
                         }
+                        val todayStr = LocalDate.now().toString()
+                        val updatedIn = if (isClockingIn) time else currentIn
+                        val updatedOut = if (!isClockingIn) time else storage.clockOutTime.first()
+                        WearableSyncManager.syncClockStatus(applicationContext, updatedIn, updatedOut, todayStr)
+
+                        try {
+                            val resp = "SUCCESS:$time"
+                            Tasks.await(messageClient.sendMessage(nodeId, "/response_punch", resp.toByteArray()))
+                        } catch (_: Exception) {}
+                    } else {
+                        val errorMsg = result.exceptionOrNull()?.message ?: "打卡失敗"
+                        try {
+                            val resp = "ERROR:$errorMsg"
+                            Tasks.await(messageClient.sendMessage(nodeId, "/response_punch", resp.toByteArray()))
+                        } catch (_: Exception) {}
                     }
                 }
             }

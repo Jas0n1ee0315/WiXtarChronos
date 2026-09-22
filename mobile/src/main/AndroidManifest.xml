@@ -26,6 +26,19 @@
             android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.WiXtarCompanion">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityDefault"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="WiXtar 打卡">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -33,10 +46,1319 @@
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
             </intent-filter>
-            <meta-data
-                android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts" />
-        </activity>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon1"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_1"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon2"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_2"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon3"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_3"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon4"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_4"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon5"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_5"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon6"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_6"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon7"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_7"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon8"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_8"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon9"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_9"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon10"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_10"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon11"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_11"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon12"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_12"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon13"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_13"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon14"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_14"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon15"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_15"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon16"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_16"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon17"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_17"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon18"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_18"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon19"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_19"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon20"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_20"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon21"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_21"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon22"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_22"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon23"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_23"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon24"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_24"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon25"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_25"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon26"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_26"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon27"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_27"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon28"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_28"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon29"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_29"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon30"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_30"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon31"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_31"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon32"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_32"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon33"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_33"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon34"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_34"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon35"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_35"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon36"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_36"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon37"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_37"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon38"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_38"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon39"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_39"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon40"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_40"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon41"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_41"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon42"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_42"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon43"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_43"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon44"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_44"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon45"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_45"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon46"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_46"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon47"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_47"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon48"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_48"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon49"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_49"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon50"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_50"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon51"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_51"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon52"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_52"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon53"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_53"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon54"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_54"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon55"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_55"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon56"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_56"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon57"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_57"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon58"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_58"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon59"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_59"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon60"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_60"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon61"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_61"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon62"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_62"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon63"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_63"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon64"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_64"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon65"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_65"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon66"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_66"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon67"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_67"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon68"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_68"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon69"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_69"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon70"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_70"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon71"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_71"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon72"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_72"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon73"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_73"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon74"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_74"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon75"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_75"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon76"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_76"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon77"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_77"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon78"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_78"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon79"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_79"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon80"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_80"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon81"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_81"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivityIcon82"
+            android:targetActivity="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/icon_option_82"
+            android:label="WiXtar 打卡">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity-alias>
 
         <service
             android:name="com.jas0n1ee.wixtar.chronos.mobile.service.MobileWearableListenerService"

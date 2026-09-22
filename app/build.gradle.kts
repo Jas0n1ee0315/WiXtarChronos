@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.jas0n1ee.wixtar.chronos.watch"
+    namespace = "com.jas0n1ee.wixtar.chronoswear"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -46,7 +46,8 @@ dependencies {
     implementation(libs.ui)
     implementation(libs.ui.graphics)
     implementation(libs.ui.tooling.preview)
-    implementation(libs.compose.material3)
+    implementation("androidx.wear.compose:compose-material:1.4.0")
+    implementation("androidx.wear.compose:compose-material3:1.0.0-alpha32")
     implementation(libs.compose.foundation)
     implementation(libs.compose.ui.tooling)
     implementation(libs.wear.tooling.preview)
@@ -54,6 +55,7 @@ dependencies {
     implementation(libs.core.splashscreen)
     implementation(libs.tiles)
     implementation(libs.protolayout)
+    implementation("androidx.wear.protolayout:protolayout-material:1.3.0")
     implementation(libs.protolayout.material3)
     implementation(libs.guava)
     implementation(libs.kotlinx.coroutines.guava)

@@ -27,6 +27,10 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.foundation.Image
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
@@ -54,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.jas0n1ee.wixtar.chronos.mobile.R
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.MobileClockViewModel
 
 enum class SettingsSubCategory(val title: String) {
@@ -61,7 +66,8 @@ enum class SettingsSubCategory(val title: String) {
     AUTH("打卡驗證資訊"),
     NOTIFICATIONS("推播通知"),
     AUTO_CLOCK("自動打卡"),
-    WEAR_OS("WearOS 整合")
+    WEAR_OS("WearOS 整合"),
+    DESKTOP_ICON("桌面個人化圖示")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -105,6 +111,7 @@ fun MobileSettingsScreen(
     val useLiveUpdates by viewModel.useLiveUpdates.collectAsState()
     val enableWatchSync by viewModel.enableWatchSync.collectAsState()
     val connectedNodesCount by viewModel.connectedNodesCount.collectAsState()
+    val selectedAppIconIndex by viewModel.selectedAppIconIndex.collectAsState()
 
     val forgetClockOutEnabled by viewModel.forgetClockOutNotifyEnabled.collectAsState()
     val forgetClockOutTime by viewModel.forgetClockOutNotifyTime.collectAsState()
@@ -475,6 +482,13 @@ fun MobileSettingsScreen(
                         subtitle = "手錶連動開關、裝置狀態與資料同步",
                         icon = Icons.Default.Watch,
                         onClick = { currentSubCategory = SettingsSubCategory.WEAR_OS }
+                    )
+
+                    SettingsMenuItemCard(
+                        title = "桌面個人化圖示",
+                        subtitle = "點擊任意圖示套用至手機桌面",
+                        icon = Icons.Default.Palette,
+                        onClick = { currentSubCategory = SettingsSubCategory.DESKTOP_ICON }
                     )
                 }
             }
@@ -1337,6 +1351,114 @@ fun MobileSettingsScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("重新載入並推送至手錶", style = MaterialTheme.typography.labelLarge)
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            SettingsSubCategory.DESKTOP_ICON -> {
+                Column(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    SettingsSubHeader(
+                        title = "桌面個人化圖示",
+                        onBack = { currentSubCategory = SettingsSubCategory.MAIN }
+                    )
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        )
+                    ) {
+                        Text(
+                            text = "點擊下方任意圖示即可套用至您手機的桌面。系統將自動更新應用程式圖示與名稱。",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    val allIconItems = remember {
+                        val list = mutableListOf<Pair<Int, String>>()
+                        list.add(0 to "預設圖示")
+                        for (i in 1..82) {
+                            list.add(i to "風格 $i")
+                        }
+                        list
+                    }
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        allIconItems.chunked(3).forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                rowItems.forEach { (iconIndex, label) ->
+                                    val isSelected = selectedAppIconIndex == iconIndex
+                                    val drawableRes = if (iconIndex == 0) {
+                                        R.mipmap.ic_launcher
+                                    } else {
+                                        context.resources.getIdentifier("icon_option_$iconIndex", "drawable", context.packageName)
+                                    }
+
+                                    ElevatedCard(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { viewModel.setAppIcon(iconIndex) },
+                                        shape = RoundedCornerShape(20.dp),
+                                        colors = CardDefaults.elevatedCardColors(
+                                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                                        ),
+                                        elevation = CardDefaults.elevatedCardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.TopEnd) {
+                                                Image(
+                                                    painter = painterResource(id = if (drawableRes != 0) drawableRes else R.mipmap.ic_launcher),
+                                                    contentDescription = label,
+                                                    modifier = Modifier
+                                                        .size(56.dp)
+                                                        .clip(RoundedCornerShape(14.dp))
+                                                )
+                                                if (isSelected) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CheckCircle,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+
+                                repeat(3 - rowItems.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }

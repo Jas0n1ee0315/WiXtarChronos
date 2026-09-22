@@ -1,6 +1,8 @@
 package com.jas0n1ee.wixtar.chronos.mobile.presentation
 
 import android.app.Application
+import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -59,6 +61,8 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     val lunchDndEnabled = storage.lunchDndEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val lunchDndStartTime = storage.lunchDndStartTime.stateIn(viewModelScope, SharingStarted.Eagerly, "12:00")
     val lunchDndEndTime = storage.lunchDndEndTime.stateIn(viewModelScope, SharingStarted.Eagerly, "13:00")
+
+    val selectedAppIconIndex = storage.selectedAppIconIndex.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     private val _cloudInTime = MutableStateFlow<String?>(null)
     private val _cloudOutTime = MutableStateFlow<String?>(null)
@@ -237,6 +241,46 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     fun saveAutoPunchPauseDays(daysCsv: String) {
         viewModelScope.launch {
             storage.saveAutoPunchPauseDays(daysCsv)
+        }
+    }
+
+    fun setAppIcon(targetIconIndex: Int) {
+        viewModelScope.launch {
+            try {
+                val context = getApplication<Application>()
+                val pm = context.packageManager
+                val packageName = context.packageName
+                val baseClass = "com.jas0n1ee.wixtar.chronos.mobile.presentation"
+
+                val aliases = mutableListOf("$baseClass.MainActivityDefault")
+                for (i in 1..82) {
+                    aliases.add("$baseClass.MainActivityIcon$i")
+                }
+
+                val activeAlias = if (targetIconIndex == 0) "$baseClass.MainActivityDefault" else "$baseClass.MainActivityIcon$targetIconIndex"
+
+                for (alias in aliases) {
+                    val state = if (alias == activeAlias) {
+                        PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                    } else {
+                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                    }
+                    try {
+                        pm.setComponentEnabledSetting(
+                            ComponentName(packageName, alias),
+                            state,
+                            PackageManager.DONT_KILL_APP
+                        )
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+
+                storage.saveSelectedAppIconIndex(targetIconIndex)
+                _message.value = "已成功套用桌面圖示！"
+            } catch (e: Exception) {
+                _error.value = "切換圖示失敗: ${e.message}"
+            }
         }
     }
 

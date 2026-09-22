@@ -24,6 +24,7 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.okhttp)
     implementation(libs.play.services.wearable)
+    implementation(libs.tiles)
     implementation(libs.kotlinx.coroutines.guava)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 }

@@ -3,9 +3,9 @@ agp = "9.1.1"
 playServicesWearable = "19.0.0"
 kotlin = "2.2.10"
 composeBom = "2025.12.00"
-composeMaterial3 = "1.5.6"
-composeFoundation = "1.5.6"
-composeUiTooling = "1.5.6"
+composeMaterial3 = "1.6.2"
+composeFoundation = "1.6.2"
+composeUiTooling = "1.6.2"
 wearToolingPreview = "1.0.0"
 activityCompose = "1.13.0"
 lifecycle = "2.8.7"
@@ -31,6 +31,7 @@ ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+composematerial = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeFoundation" }
 compose-material3 = { group = "androidx.wear.compose", name = "compose-material3", version.ref = "composeMaterial3" }
 compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version.ref = "composeFoundation" }
 compose-ui-tooling = { group = "androidx.wear.compose", name = "compose-ui-tooling", version.ref = "composeUiTooling" }
@@ -40,6 +41,7 @@ core-splashscreen = { group = "androidx.core", name = "core-splashscreen", versi
 tiles = { group = "androidx.wear.tiles", name = "tiles", version.ref = "tiles" }
 tiles-renderer = { group = "androidx.wear.tiles", name = "tiles-renderer", version.ref = "tilesRenderer" }
 protolayout = { group = "androidx.wear.protolayout", name = "protolayout", version.ref = "protolayout" }
+protolayoutmaterial = { group = "androidx.wear.protolayout", name = "protolayout-material", version.ref = "protolayout" }
 protolayout-material3 = { group = "androidx.wear.protolayout", name = "protolayout-material3", version.ref = "protolayoutMaterial3" }
 guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
 kotlinx-coroutines-guava = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-guava", version = "1.9.0" }

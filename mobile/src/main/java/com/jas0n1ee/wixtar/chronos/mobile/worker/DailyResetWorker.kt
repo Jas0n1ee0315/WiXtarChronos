@@ -11,7 +11,9 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
+import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
 import com.jas0n1ee.wixtar.chronos.mobile.service.WiXtarTileService
+import kotlinx.coroutines.flow.first
 import com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget1x1CircleProvider
 import com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget1x1CircleTranslucentProvider
 import com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidget1x1Provider
@@ -34,6 +36,16 @@ class DailyResetWorker(
     override suspend fun doWork(): Result {
         val storage = AppStorage(applicationContext)
         storage.clearClockDataIfExpired()
+
+        // Re-schedule Auto Punch and Lunch DND for the new day
+        AutoPunchScheduler.scheduleAutoPunch(applicationContext)
+
+        val lunchDndEnabled = storage.lunchDndEnabled.first()
+        if (lunchDndEnabled) {
+            val dndStart = storage.lunchDndStartTime.first()
+            val dndEnd = storage.lunchDndEndTime.first()
+            MobileNotificationHelper(applicationContext).scheduleLunchDndReminders(dndStart, dndEnd)
+        }
 
         // Update Quick Settings Tile
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

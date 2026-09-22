@@ -1,6 +1,7 @@
 package com.jas0n1ee.wixtar.chronos.data
 
 import android.content.Context
+import android.content.Intent
 import androidx.wear.tiles.TileService
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -182,11 +183,18 @@ class AppStorage(private val context: Context) {
         }
     }
 
-    private fun requestTileUpdate(context: Context) {
+    private fun requestWidgetsAndTilesUpdate(context: Context) {
         try {
             @Suppress("UNCHECKED_CAST")
             val clazz = Class.forName("com.jas0n1ee.wixtar.chronoswear.tile.MainTileService") as Class<out TileService>
             TileService.getUpdater(context).requestUpdate(clazz)
+        } catch (_: Exception) {}
+
+        try {
+            val intent = Intent("com.jas0n1ee.wixtar.chronos.UPDATE_WIDGETS").apply {
+                setPackage(context.packageName)
+            }
+            context.sendBroadcast(intent)
         } catch (_: Exception) {}
     }
 
@@ -203,7 +211,7 @@ class AppStorage(private val context: Context) {
             prefs[CLOCK_OUT_SOURCE] = ""
             prefs[LAST_CLOCK_DATE] = today
         }
-        requestTileUpdate(context)
+        requestWidgetsAndTilesUpdate(context)
     }
 
     suspend fun saveClockOut(time: String) {
@@ -217,7 +225,7 @@ class AppStorage(private val context: Context) {
             prefs[CLOCK_OUT_SOURCE] = source
             prefs[LAST_CLOCK_DATE] = today
         }
-        requestTileUpdate(context)
+        requestWidgetsAndTilesUpdate(context)
     }
 
     suspend fun saveClockDataWithSources(inTime: String, inSource: String, outTime: String, outSource: String) {
@@ -229,7 +237,7 @@ class AppStorage(private val context: Context) {
             prefs[CLOCK_OUT_SOURCE] = outSource
             prefs[LAST_CLOCK_DATE] = today
         }
-        requestTileUpdate(context)
+        requestWidgetsAndTilesUpdate(context)
     }
 
     suspend fun clearClockDataIfExpired() {
@@ -243,7 +251,7 @@ class AppStorage(private val context: Context) {
                 prefs[CLOCK_OUT_SOURCE] = ""
             }
         }
-        requestTileUpdate(context)
+        requestWidgetsAndTilesUpdate(context)
     }
 
     suspend fun saveAutoPunchPauseDays(daysCsv: String) {

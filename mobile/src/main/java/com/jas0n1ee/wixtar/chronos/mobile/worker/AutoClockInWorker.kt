@@ -61,20 +61,21 @@ class AutoClockInWorker(
         val currentIn = storage.clockInTime.first()
         if (!currentIn.isNullOrBlank()) return Result.success() // Already clocked in today
 
-        // 1. Check Taiwan Holiday Calendar
-        val calendarResult = calendarRepo.isWorkDay(LocalDate.now())
-        if (calendarResult.isFailure) {
-            Log.e("AutoClockInWorker", "Failed to check Taiwan calendar", calendarResult.exceptionOrNull())
-            notificationHelper.sendManualPunchNotification(
-                title = "本日尚未自動打卡",
-                message = "不確定今日是否為工作日，請手動打卡"
-            )
-            return Result.success()
+        // 1. Check Taiwan Holiday Calendar (with weekday fallback if network fails in Doze mode)
+        val todayDate = LocalDate.now()
+        val calendarResult = calendarRepo.isWorkDay(todayDate)
+        val isWorkDay = if (calendarResult.isSuccess) {
+            calendarResult.getOrNull() == true
+        } else {
+            // Network or API check failed (e.g. phone waking up in Doze mode without active network).
+            // Fallback: Monday to Friday (1..5) are considered working days.
+            val isWeekday = todayDate.dayOfWeek.value in 1..5
+            Log.w("AutoClockInWorker", "Taiwan calendar API unavailable. Fallback: isWeekday=$isWeekday")
+            isWeekday
         }
 
-        val isWorkDay = calendarResult.getOrNull() == true
         if (!isWorkDay) {
-            Log.d("AutoClockInWorker", "Today is a holiday or weekend. Auto clock-in skipped.")
+            Log.d("AutoClockInWorker", "Today ($todayDate) is a holiday or weekend. Auto clock-in skipped.")
             return Result.success()
         }
 

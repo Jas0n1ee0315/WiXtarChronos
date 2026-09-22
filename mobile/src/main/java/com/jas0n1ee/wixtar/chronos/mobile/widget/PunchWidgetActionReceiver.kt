@@ -17,10 +17,63 @@ import kotlinx.coroutines.launch
 class PunchWidgetActionReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_PUNCH_CARD = "com.jas0n1ee.wixtar.chronos.ACTION_PUNCH_CARD"
+        const val ACTION_UPDATE_WIDGETS = "com.jas0n1ee.wixtar.chronos.UPDATE_WIDGETS"
+
+        suspend fun updateAllWidgets(context: Context) {
+            try {
+                val appWidgetManager = AppWidgetManager.getInstance(context)
+
+                val ids2x1 = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget2x1Provider::class.java))
+                if (ids2x1.isNotEmpty()) PunchWidget2x1Provider.updateAppWidgets(context, appWidgetManager, ids2x1)
+
+                val ids2x1Trans = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget2x1TranslucentProvider::class.java))
+                if (ids2x1Trans.isNotEmpty()) PunchWidget2x1TranslucentProvider.updateAppWidgets(context, appWidgetManager, ids2x1Trans)
+
+                val idsStadium = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidgetStadiumProvider::class.java))
+                if (idsStadium.isNotEmpty()) PunchWidgetStadiumProvider.updateAppWidgets(context, appWidgetManager, idsStadium)
+
+                val idsStadiumTrans = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidgetStadiumTranslucentProvider::class.java))
+                if (idsStadiumTrans.isNotEmpty()) PunchWidgetStadiumTranslucentProvider.updateAppWidgets(context, appWidgetManager, idsStadiumTrans)
+
+                val idsCircle = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidgetCircleProvider::class.java))
+                if (idsCircle.isNotEmpty()) PunchWidgetCircleProvider.updateAppWidgets(context, appWidgetManager, idsCircle)
+
+                val idsCircleTrans = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidgetCircleTranslucentProvider::class.java))
+                if (idsCircleTrans.isNotEmpty()) PunchWidgetCircleTranslucentProvider.updateAppWidgets(context, appWidgetManager, idsCircleTrans)
+
+                val ids1x1 = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget1x1Provider::class.java))
+                if (ids1x1.isNotEmpty()) PunchWidget1x1Provider.updateAppWidgets(context, appWidgetManager, ids1x1)
+
+                val ids1x1Trans = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget1x1TranslucentProvider::class.java))
+                if (ids1x1Trans.isNotEmpty()) PunchWidget1x1TranslucentProvider.updateAppWidgets(context, appWidgetManager, ids1x1Trans)
+
+                val ids1x1Circle = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget1x1CircleProvider::class.java))
+                if (ids1x1Circle.isNotEmpty()) PunchWidget1x1CircleProvider.updateAppWidgets(context, appWidgetManager, ids1x1Circle)
+
+                val ids1x1CircleTrans = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget1x1CircleTranslucentProvider::class.java))
+                if (ids1x1CircleTrans.isNotEmpty()) PunchWidget1x1CircleTranslucentProvider.updateAppWidgets(context, appWidgetManager, ids1x1CircleTrans)
+            } catch (e: Exception) {
+                Log.e("PunchWidgetReceiver", "Failed to update widgets", e)
+            }
+        }
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == ACTION_PUNCH_CARD) {
+        val action = intent.action ?: return
+
+        if (action == ACTION_UPDATE_WIDGETS || action == Intent.ACTION_BOOT_COMPLETED) {
+            val pendingResult = try { goAsync() } catch (_: Exception) { null }
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    updateAllWidgets(context)
+                } finally {
+                    pendingResult?.finish()
+                }
+            }
+            return
+        }
+
+        if (action == ACTION_PUNCH_CARD) {
             val pendingResult = try { goAsync() } catch (_: Exception) { null }
             CoroutineScope(Dispatchers.IO).launch {
                 try {
@@ -65,39 +118,5 @@ class PunchWidgetActionReceiver : BroadcastReceiver() {
                 }
             }
         }
-    }
-
-    private suspend fun updateAllWidgets(context: Context) {
-        val appWidgetManager = AppWidgetManager.getInstance(context)
-
-        val ids2x1 = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget2x1Provider::class.java))
-        if (ids2x1.isNotEmpty()) PunchWidget2x1Provider.updateAppWidgets(context, appWidgetManager, ids2x1)
-
-        val ids2x1Trans = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget2x1TranslucentProvider::class.java))
-        if (ids2x1Trans.isNotEmpty()) PunchWidget2x1TranslucentProvider.updateAppWidgets(context, appWidgetManager, ids2x1Trans)
-
-        val idsStadium = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidgetStadiumProvider::class.java))
-        if (idsStadium.isNotEmpty()) PunchWidgetStadiumProvider.updateAppWidgets(context, appWidgetManager, idsStadium)
-
-        val idsStadiumTrans = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidgetStadiumTranslucentProvider::class.java))
-        if (idsStadiumTrans.isNotEmpty()) PunchWidgetStadiumTranslucentProvider.updateAppWidgets(context, appWidgetManager, idsStadiumTrans)
-
-        val idsCircle = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidgetCircleProvider::class.java))
-        if (idsCircle.isNotEmpty()) PunchWidgetCircleProvider.updateAppWidgets(context, appWidgetManager, idsCircle)
-
-        val idsCircleTrans = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidgetCircleTranslucentProvider::class.java))
-        if (idsCircleTrans.isNotEmpty()) PunchWidgetCircleTranslucentProvider.updateAppWidgets(context, appWidgetManager, idsCircleTrans)
-
-        val ids1x1 = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget1x1Provider::class.java))
-        if (ids1x1.isNotEmpty()) PunchWidget1x1Provider.updateAppWidgets(context, appWidgetManager, ids1x1)
-
-        val ids1x1Trans = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget1x1TranslucentProvider::class.java))
-        if (ids1x1Trans.isNotEmpty()) PunchWidget1x1TranslucentProvider.updateAppWidgets(context, appWidgetManager, ids1x1Trans)
-
-        val ids1x1Circle = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget1x1CircleProvider::class.java))
-        if (ids1x1Circle.isNotEmpty()) PunchWidget1x1CircleProvider.updateAppWidgets(context, appWidgetManager, ids1x1Circle)
-
-        val ids1x1CircleTrans = appWidgetManager.getAppWidgetIds(ComponentName(context, PunchWidget1x1CircleTranslucentProvider::class.java))
-        if (ids1x1CircleTrans.isNotEmpty()) PunchWidget1x1CircleTranslucentProvider.updateAppWidgets(context, appWidgetManager, ids1x1CircleTrans)
     }
 }

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
+import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -45,6 +46,14 @@ class LunchDndReceiver : BroadcastReceiver() {
                     }
                 } else {
                     Log.d("LunchDndReceiver", "Lunch DND skipped: enabled=$enabled, clockIn=$clockIn")
+                }
+
+                // Re-schedule Lunch DND for the next day
+                if (enabled) {
+                    val dndStart = storage.lunchDndStartTime.first()
+                    val dndEnd = storage.lunchDndEndTime.first()
+                    MobileNotificationHelper(context)
+                        .scheduleLunchDndReminders(dndStart, dndEnd)
                 }
             } catch (e: Exception) {
                 Log.e("LunchDndReceiver", "Error processing Lunch DND action", e)

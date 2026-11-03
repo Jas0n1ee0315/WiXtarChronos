@@ -1520,14 +1520,6 @@
         </receiver>
 
         <receiver
-            android:name="com.jas0n1ee.wixtar.chronos.mobile.notification.FishOilActionReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.jas0n1ee.wixtar.chronos.ACTION_FISH_OIL_EATEN" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
             android:name="com.jas0n1ee.wixtar.chronos.mobile.notification.NotificationReceiver"
             android:exported="false" />
 

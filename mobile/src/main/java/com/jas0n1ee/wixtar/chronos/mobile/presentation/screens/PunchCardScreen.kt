@@ -1,6 +1,5 @@
 package com.jas0n1ee.wixtar.chronos.mobile.presentation.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -9,7 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,8 +22,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.jas0n1ee.wixtar.chronos.mobile.R
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.MobileClockViewModel
-import com.jas0n1ee.wixtar.chronos.mobile.presentation.components.MultiDatePickerDialog
-import com.jas0n1ee.wixtar.chronos.mobile.presentation.components.formatPauseDaysForDisplay
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -41,11 +37,6 @@ fun PunchCardScreen(
     val isClockingIn by viewModel.isClockingIn.collectAsState()
     val isHrSystemNormal by viewModel.isHrSystemNormal.collectAsState()
     val hrRetryCountdown by viewModel.hrRetryCountdown.collectAsState()
-
-    val autoClockInEnabled by viewModel.autoClockInEnabled.collectAsState()
-    val autoPunchPauseDays by viewModel.autoPunchPauseDays.collectAsState()
-
-    var showMultiDatePickerDialog by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -92,17 +83,6 @@ fun PunchCardScreen(
     }
 
     val scrollState = rememberScrollState()
-
-    if (showMultiDatePickerDialog) {
-        MultiDatePickerDialog(
-            initialSelectedDatesCsv = autoPunchPauseDays,
-            onDismissRequest = { showMultiDatePickerDialog = false },
-            onConfirm = { newCsv ->
-                showMultiDatePickerDialog = false
-                viewModel.saveAutoPunchPauseDays(newCsv)
-            }
-        )
-    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -294,59 +274,6 @@ fun PunchCardScreen(
                     }
                 }
             }
-
-            // Auto-Punch Pause Days Setting Card (Visible ONLY when autoClockInEnabled == true)
-            AnimatedVisibility(visible = autoClockInEnabled) {
-                ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.EventBusy,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = "自動打卡暫停日",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = formatPauseDaysForDisplay(autoPunchPauseDays),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (autoPunchPauseDays.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            OutlinedButton(
-                                onClick = { showMultiDatePickerDialog = true },
-                                shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text("設定", style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
-                    }
-                }
-            }
         }
 
         // Fixed Floating Punch Card Action Button (Pinned right above the Tab Bar)
@@ -368,28 +295,28 @@ fun PunchCardScreen(
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                    if (isClockingIn) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 3.dp
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("打卡處理中...", style = MaterialTheme.typography.titleMedium)
-                    } else {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_cloud_clock),
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = actionButtonText,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                if (isClockingIn) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 3.dp
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("打卡處理中...", style = MaterialTheme.typography.titleMedium)
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_cloud_clock),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = actionButtonText,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
     }
+}

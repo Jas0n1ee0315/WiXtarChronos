@@ -14,29 +14,20 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoMode
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.foundation.Image
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Visibility
@@ -58,16 +49,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.jas0n1ee.wixtar.chronos.mobile.R
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.MobileClockViewModel
 
 enum class SettingsSubCategory(val title: String) {
     MAIN("系統設定"),
     AUTH("打卡驗證資訊"),
     NOTIFICATIONS("推播通知"),
-    AUTO_CLOCK("自動打卡"),
-    WEAR_OS("WearOS 整合"),
-    DESKTOP_ICON("桌面個人化圖示")
+    WEAR_OS("WearOS 整合")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,24 +99,15 @@ fun MobileSettingsScreen(
     val useLiveUpdates by viewModel.useLiveUpdates.collectAsState()
     val enableWatchSync by viewModel.enableWatchSync.collectAsState()
     val connectedNodesCount by viewModel.connectedNodesCount.collectAsState()
-    val selectedAppIconIndex by viewModel.selectedAppIconIndex.collectAsState()
 
     val forgetClockOutEnabled by viewModel.forgetClockOutNotifyEnabled.collectAsState()
     val forgetClockOutTime by viewModel.forgetClockOutNotifyTime.collectAsState()
 
-    val fishOilEnabled by viewModel.fishOilNotifyEnabled.collectAsState()
-    val fishOilTime by viewModel.fishOilNotifyTime.collectAsState()
-    val fishOilDays by viewModel.fishOilNotifyDays.collectAsState()
-
-    val autoClockIn by viewModel.autoClockInEnabled.collectAsState()
-    val workStart by viewModel.workStartTime.collectAsState()
-    val flexibleClockIn by viewModel.flexibleClockInEnabled.collectAsState()
-    val flexibleEnd by viewModel.flexibleEndTime.collectAsState()
-    val autoClockOut by viewModel.autoClockOutEnabled.collectAsState()
-
     val lunchDndEnabled by viewModel.lunchDndEnabled.collectAsState()
     val lunchDndStartTime by viewModel.lunchDndStartTime.collectAsState()
     val lunchDndEndTime by viewModel.lunchDndEndTime.collectAsState()
+
+    val mockOffWorkTime by viewModel.mockOffWorkTime.collectAsState()
 
     var tempEmpId by remember(empId) { mutableStateOf(empId) }
     var tempPassword by remember(password) { mutableStateOf(password) }
@@ -143,25 +122,17 @@ fun MobileSettingsScreen(
     var tempForgetClockOutEnabled by remember(forgetClockOutEnabled) { mutableStateOf(forgetClockOutEnabled) }
     var tempForgetClockOutTime by remember(forgetClockOutTime) { mutableStateOf(forgetClockOutTime) }
 
-    var tempFishOilEnabled by remember(fishOilEnabled) { mutableStateOf(fishOilEnabled) }
-    var tempFishOilTime by remember(fishOilTime) { mutableStateOf(fishOilTime) }
-    var tempFishOilDays by remember(fishOilDays) { mutableStateOf(fishOilDays) }
-
-    var tempAutoClockIn by remember(autoClockIn) { mutableStateOf(autoClockIn) }
-    var tempWorkStart by remember(workStart) { mutableStateOf(workStart) }
-    var tempFlexibleClockIn by remember(flexibleClockIn) { mutableStateOf(flexibleClockIn) }
-    var tempFlexibleEnd by remember(flexibleEnd) { mutableStateOf(flexibleEnd) }
-    var tempAutoClockOut by remember(autoClockOut) { mutableStateOf(autoClockOut) }
-
     var tempLunchDndEnabled by remember(lunchDndEnabled) { mutableStateOf(lunchDndEnabled) }
     var tempLunchDndStartTime by remember(lunchDndStartTime) { mutableStateOf(lunchDndStartTime) }
     var tempLunchDndEndTime by remember(lunchDndEndTime) { mutableStateOf(lunchDndEndTime) }
+
+    var tempMockOffWorkTime by remember(mockOffWorkTime) { mutableStateOf(mockOffWorkTime) }
 
     var isPasswordVisible by remember { mutableStateOf(false) }
     var advanceDropdownExpanded by remember { mutableStateOf(false) }
     
     var showTimePickerDialog by remember { mutableStateOf(false) }
-    var activeTimePickerTarget by remember { mutableStateOf("FISH_OIL") }
+    var activeTimePickerTarget by remember { mutableStateOf("FORGET_CLOCK_OUT") }
 
     var showPowerWarningDialog by remember { mutableStateOf(false) }
     var showBatteryOptimizationDialog by remember { mutableStateOf(false) }
@@ -180,25 +151,17 @@ fun MobileSettingsScreen(
         useLiveUpdatesVal: Boolean = tempUseLiveUpdates,
         forgetClockOutEnabledVal: Boolean = tempForgetClockOutEnabled,
         forgetClockOutTimeVal: String = tempForgetClockOutTime,
-        fishOilEnabledVal: Boolean = tempFishOilEnabled,
-        fishOilTimeVal: String = tempFishOilTime,
-        fishOilDaysVal: String = tempFishOilDays,
-        autoClockInVal: Boolean = tempAutoClockIn,
-        workStartVal: String = tempWorkStart,
-        flexibleClockInVal: Boolean = tempFlexibleClockIn,
-        flexibleEndVal: String = tempFlexibleEnd,
-        autoClockOutVal: Boolean = tempAutoClockOut,
         lunchDndEnabledVal: Boolean = tempLunchDndEnabled,
         lunchDndStartTimeVal: String = tempLunchDndStartTime,
-        lunchDndEndTimeVal: String = tempLunchDndEndTime
+        lunchDndEndTimeVal: String = tempLunchDndEndTime,
+        mockOffWorkTimeVal: String = tempMockOffWorkTime
     ) {
         viewModel.saveSettings(
             empIdVal, passVal, cookieVal, encVal, gpsVal,
             notifyBeforeVal, notifyOnVal, advanceMinutesVal, useLiveUpdatesVal,
             forgetClockOutEnabledVal, forgetClockOutTimeVal,
-            fishOilEnabledVal, fishOilTimeVal, fishOilDaysVal,
-            autoClockInVal, workStartVal, flexibleClockInVal, workStartVal, flexibleEndVal, autoClockOutVal,
-            lunchDndEnabledVal, lunchDndStartTimeVal, lunchDndEndTimeVal
+            lunchDndEnabledVal, lunchDndStartTimeVal, lunchDndEndTimeVal,
+            mockOffWorkTimeVal
         )
     }
 
@@ -244,32 +207,26 @@ fun MobileSettingsScreen(
     // TimePicker Dialog
     if (showTimePickerDialog) {
         val currentTimeStr = when (activeTimePickerTarget) {
-            "FISH_OIL" -> tempFishOilTime
             "FORGET_CLOCK_OUT" -> tempForgetClockOutTime
-            "WORK_START" -> tempWorkStart
-            "FLEXIBLE_END" -> tempFlexibleEnd
             "LUNCH_DND_START" -> tempLunchDndStartTime
             "LUNCH_DND_END" -> tempLunchDndEndTime
-            else -> "08:30"
+            "MOCK_OFF_WORK" -> tempMockOffWorkTime
+            else -> "12:00"
         }
         val initialParts = currentTimeStr.split(":")
         val defaultHour = when (activeTimePickerTarget) {
-            "FISH_OIL" -> 13
             "FORGET_CLOCK_OUT" -> 21
-            "WORK_START" -> 8
-            "FLEXIBLE_END" -> 9
             "LUNCH_DND_START" -> 12
             "LUNCH_DND_END" -> 13
-            else -> 8
+            "MOCK_OFF_WORK" -> 17
+            else -> 12
         }
         val defaultMinute = when (activeTimePickerTarget) {
-            "FISH_OIL" -> 10
             "FORGET_CLOCK_OUT" -> 0
-            "WORK_START" -> 30
-            "FLEXIBLE_END" -> 30
             "LUNCH_DND_START" -> 0
             "LUNCH_DND_END" -> 0
-            else -> 30
+            "MOCK_OFF_WORK" -> 30
+            else -> 0
         }
         val initialHour = initialParts.getOrNull(0)?.toIntOrNull() ?: defaultHour
         val initialMinute = initialParts.getOrNull(1)?.toIntOrNull() ?: defaultMinute
@@ -284,33 +241,14 @@ fun MobileSettingsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showTimePickerDialog = false
-                    var hour = timePickerState.hour
-                    var minute = timePickerState.minute
-
-                    if (activeTimePickerTarget == "FLEXIBLE_END") {
-                        if (hour > 9 || (hour == 9 && minute > 30)) {
-                            hour = 9
-                            minute = 30
-                        }
-                    }
-
+                    val hour = timePickerState.hour
+                    val minute = timePickerState.minute
                     val formatted = String.format("%02d:%02d", hour, minute)
+
                     when (activeTimePickerTarget) {
-                        "FISH_OIL" -> {
-                            tempFishOilTime = formatted
-                            autoSave(fishOilTimeVal = formatted)
-                        }
                         "FORGET_CLOCK_OUT" -> {
                             tempForgetClockOutTime = formatted
                             autoSave(forgetClockOutTimeVal = formatted)
-                        }
-                        "WORK_START" -> {
-                            tempWorkStart = formatted
-                            autoSave(workStartVal = formatted)
-                        }
-                        "FLEXIBLE_END" -> {
-                            tempFlexibleEnd = formatted
-                            autoSave(flexibleEndVal = formatted)
                         }
                         "LUNCH_DND_START" -> {
                             tempLunchDndStartTime = formatted
@@ -319,6 +257,10 @@ fun MobileSettingsScreen(
                         "LUNCH_DND_END" -> {
                             tempLunchDndEndTime = formatted
                             autoSave(lunchDndEndTimeVal = formatted)
+                        }
+                        "MOCK_OFF_WORK" -> {
+                            tempMockOffWorkTime = formatted
+                            autoSave(mockOffWorkTimeVal = formatted)
                         }
                     }
                 }) {
@@ -471,24 +413,10 @@ fun MobileSettingsScreen(
                     )
 
                     SettingsMenuItemCard(
-                        title = "自動打卡",
-                        subtitle = "定時自動打卡與彈性打卡設定",
-                        icon = Icons.Default.AutoMode,
-                        onClick = { currentSubCategory = SettingsSubCategory.AUTO_CLOCK }
-                    )
-
-                    SettingsMenuItemCard(
                         title = "WearOS 整合",
                         subtitle = "手錶連動開關、裝置狀態與資料同步",
                         icon = Icons.Default.Watch,
                         onClick = { currentSubCategory = SettingsSubCategory.WEAR_OS }
-                    )
-
-                    SettingsMenuItemCard(
-                        title = "桌面個人化圖示",
-                        subtitle = "點擊任意圖示套用至手機桌面",
-                        icon = Icons.Default.Palette,
-                        onClick = { currentSubCategory = SettingsSubCategory.DESKTOP_ICON }
                     )
                 }
             }
@@ -621,7 +549,7 @@ fun MobileSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     SettingsSubHeader(
-                        title = "推播通知",
+                        title = "打卡提醒通知",
                         onBack = { currentSubCategory = SettingsSubCategory.MAIN }
                     )
 
@@ -763,6 +691,7 @@ fun MobileSettingsScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("可下班通知", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                                     Text("工作時間滿 9 小時當下發送下班提醒", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("可於通知直接打卡", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Switch(
                                     checked = tempNotifyOn,
@@ -871,354 +800,50 @@ fun MobileSettingsScreen(
 
                             HorizontalDivider()
 
-                            // 5. 挪銘專屬吃魚油通知
-                            Row(
+                            // 5. 模擬下班時間 (測試 Live Update 用)
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("挪銘專屬吃魚油通知", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                                    Text("再不吃魚油啊，身體壞光光", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                Switch(
-                                    checked = tempFishOilEnabled,
-                                    onCheckedChange = { checked ->
-                                        tempFishOilEnabled = checked
-                                        autoSave(fishOilEnabledVal = checked)
-                                        if (checked && !isIgnoringBattery) {
-                                            showBatteryOptimizationDialog = true
-                                        }
-                                    }
-                                )
-                            }
-
-                            AnimatedVisibility(visible = tempFishOilEnabled) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    // Time Display & Edit Pill
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("提醒時間", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Surface(
-                                            onClick = {
-                                                activeTimePickerTarget = "FISH_OIL"
-                                                showTimePickerDialog = true
-                                            },
-                                            shape = RoundedCornerShape(16.dp),
-                                            color = MaterialTheme.colorScheme.primaryContainer
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = tempFishOilTime,
-                                                    style = MaterialTheme.typography.titleLarge,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    Text("選擇重複日期：", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                                    // Google Clock Alarm Style Day-of-Week Selector Pills
-                                    val selectedDaysSet = remember(tempFishOilDays) { 
-                                        tempFishOilDays.split(",").mapNotNull { it.trim().toIntOrNull() }.toSet() 
-                                    }
-                                    val dayLabels = listOf("日", "一", "二", "三", "四", "五", "六")
-                                    val dayIsoValues = listOf(7, 1, 2, 3, 4, 5, 6)
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        dayLabels.forEachIndexed { index, label ->
-                                            val isoVal = dayIsoValues[index]
-                                            val isSelected = selectedDaysSet.contains(isoVal)
-
-                                            Surface(
-                                                modifier = Modifier
-                                                    .size(42.dp)
-                                                    .clickable {
-                                                        val newSet = if (isSelected) {
-                                                            selectedDaysSet - isoVal
-                                                        } else {
-                                                            selectedDaysSet + isoVal
-                                                        }
-                                                        tempFishOilDays = newSet.sorted().joinToString(",")
-                                                        autoSave(fishOilDaysVal = tempFishOilDays)
-                                                    },
-                                                shape = CircleShape,
-                                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                                contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                                            ) {
-                                                Box(
-                                                    contentAlignment = Alignment.Center,
-                                                    modifier = Modifier.fillMaxSize()
-                                                ) {
-                                                    Text(
-                                                        text = label,
-                                                        style = MaterialTheme.typography.titleMedium,
-                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            SettingsSubCategory.AUTO_CLOCK -> {
-                Column(
-                    modifier = modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    SettingsSubHeader(
-                        title = "自動打卡",
-                        onBack = { currentSubCategory = SettingsSubCategory.MAIN }
-                    )
-
-                    ElevatedCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            // 1. 自動打上班卡 Switch
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("自動打上班卡", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                                    Text("於指定工作日時間進行背景自動簽到打卡", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                Switch(
-                                    checked = tempAutoClockIn,
-                                    onCheckedChange = { checked ->
-                                        tempAutoClockIn = checked
-                                        autoSave(autoClockInVal = checked)
-                                        if (checked && !isIgnoringBattery) {
-                                            showBatteryOptimizationDialog = true
-                                        }
-                                    }
-                                )
-                            }
-
-                            // 2. 設定上班時間 TimePicker
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "設定上班時間",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (tempAutoClockIn) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                                Surface(
-                                    onClick = {
-                                        if (tempAutoClockIn) {
-                                            activeTimePickerTarget = "WORK_START"
-                                            showTimePickerDialog = true
-                                        }
-                                    },
-                                    enabled = tempAutoClockIn,
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = if (tempAutoClockIn) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Schedule,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp),
-                                            tint = if (tempAutoClockIn) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = tempWorkStart,
-                                            style = MaterialTheme.typography.titleLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (tempAutoClockIn) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                        )
-                                    }
-                                }
-                            }
-
-                            HorizontalDivider()
-
-                            // 3. 彈性時間打上班卡 Switch
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "彈性時間打上班卡",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (tempAutoClockIn) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                    )
-                                    Text(
-                                        text = "模擬不同時間點打卡",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (tempAutoClockIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                    )
-                                    Text(
-                                        text = "程式將在此時間範圍內隨機打上班卡",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (tempAutoClockIn && tempFlexibleClockIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                    )
-                                }
-                                Switch(
-                                    checked = tempFlexibleClockIn && tempAutoClockIn,
-                                    enabled = tempAutoClockIn,
-                                    onCheckedChange = { checked ->
-                                        tempFlexibleClockIn = checked
-                                        autoSave(flexibleClockInVal = checked)
-                                    }
-                                )
-                            }
-
-                            // 4. 彈性時間範圍 TimePickers (Range)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "彈性時間範圍",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (tempAutoClockIn && tempFlexibleClockIn) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
+                                Text("模擬下班時間 (測試 Live Update)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                Text("僅用於測試 Live Update 倒數推播效果，即便開啟自動打卡亦絕不發起真實打卡", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Start Time (read-only, mirrors tempWorkStart)
-                                    Surface(
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = MaterialTheme.colorScheme.surfaceContainerHigh
-                                    ) {
-                                        Text(
-                                            text = tempWorkStart,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                            color = if (tempAutoClockIn && tempFlexibleClockIn) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                        )
-                                    }
-
-                                    Text("~", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-
-                                    // End Time
                                     Surface(
                                         onClick = {
-                                            if (tempAutoClockIn && tempFlexibleClockIn) {
-                                                activeTimePickerTarget = "FLEXIBLE_END"
-                                                showTimePickerDialog = true
-                                            }
+                                            activeTimePickerTarget = "MOCK_OFF_WORK"
+                                            showTimePickerDialog = true
                                         },
-                                        enabled = tempAutoClockIn && tempFlexibleClockIn,
                                         shape = RoundedCornerShape(16.dp),
-                                        color = if (tempAutoClockIn && tempFlexibleClockIn) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer
+                                        color = MaterialTheme.colorScheme.secondaryContainer
                                     ) {
-                                        Text(
-                                            text = tempFlexibleEnd,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                            color = if (tempAutoClockIn && tempFlexibleClockIn) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                        )
-                                    }
-                                }
-                            }
-
-                            HorizontalDivider()
-
-                            // 5. 自動打下班卡 Switch
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("自動打下班卡", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                                    Text("根據上班卡時間加 9 小時自動打卡。下班時間到後隔 5 秒才會進行自動打卡，以防手機時間與伺服器端時間不同。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                Switch(
-                                    checked = tempAutoClockOut,
-                                    onCheckedChange = { checked ->
-                                        tempAutoClockOut = checked
-                                        autoSave(autoClockOutVal = checked)
-                                        if (checked && !isIgnoringBattery) {
-                                            showBatteryOptimizationDialog = true
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = tempMockOffWorkTime,
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
                                         }
                                     }
-                                )
-                            }
-                        }
-                    }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "注意事項",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                                    Button(
+                                        onClick = { viewModel.triggerMockLiveUpdateNotification(tempMockOffWorkTime) },
+                                        shape = RoundedCornerShape(16.dp)
+                                    ) {
+                                        Text("發送測試通知")
+                                    }
+                                }
                             }
-                            Text(
-                                text = "此功能雖已整合台灣國定假日行事曆，但它不會知道你臨時請假或哪幾天要出國。當開啟自動打卡後，在「線上打卡」中將顯示「自動打卡暫停日」可提前設定哪幾天不自動打卡。",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }
@@ -1351,114 +976,6 @@ fun MobileSettingsScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("重新載入並推送至手錶", style = MaterialTheme.typography.labelLarge)
                                     }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            SettingsSubCategory.DESKTOP_ICON -> {
-                Column(
-                    modifier = modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    SettingsSubHeader(
-                        title = "桌面個人化圖示",
-                        onBack = { currentSubCategory = SettingsSubCategory.MAIN }
-                    )
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                        )
-                    ) {
-                        Text(
-                            text = "點擊下方任意圖示即可套用至您手機的桌面。系統將自動更新應用程式圖示與名稱。",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    val allIconItems = remember {
-                        val list = mutableListOf<Pair<Int, String>>()
-                        list.add(0 to "預設圖示")
-                        for (i in 1..82) {
-                            list.add(i to "風格 $i")
-                        }
-                        list
-                    }
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        allIconItems.chunked(3).forEach { rowItems ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                rowItems.forEach { (iconIndex, label) ->
-                                    val isSelected = selectedAppIconIndex == iconIndex
-                                    val drawableRes = if (iconIndex == 0) {
-                                        R.mipmap.ic_launcher
-                                    } else {
-                                        context.resources.getIdentifier("icon_option_$iconIndex", "drawable", context.packageName)
-                                    }
-
-                                    ElevatedCard(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { viewModel.setAppIcon(iconIndex) },
-                                        shape = RoundedCornerShape(20.dp),
-                                        colors = CardDefaults.elevatedCardColors(
-                                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-                                        ),
-                                        elevation = CardDefaults.elevatedCardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp)
-                                    ) {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(12.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Box(contentAlignment = Alignment.TopEnd) {
-                                                Image(
-                                                    painter = painterResource(id = if (drawableRes != 0) drawableRes else R.mipmap.ic_launcher),
-                                                    contentDescription = label,
-                                                    modifier = Modifier
-                                                        .size(56.dp)
-                                                        .clip(RoundedCornerShape(14.dp))
-                                                )
-                                                if (isSelected) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.CheckCircle,
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
-                                                }
-                                            }
-
-                                            Text(
-                                                text = label,
-                                                style = MaterialTheme.typography.labelMedium,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                maxLines = 1
-                                            )
-                                        }
-                                    }
-                                }
-
-                                repeat(3 - rowItems.size) {
-                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }

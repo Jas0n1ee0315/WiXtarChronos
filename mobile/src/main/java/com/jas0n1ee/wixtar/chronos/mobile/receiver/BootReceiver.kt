@@ -35,14 +35,6 @@ class BootReceiver : BroadcastReceiver() {
                     if ((notifyBefore || notifyOn) && !clockIn.isNullOrBlank()) {
                         notificationHelper.scheduleReminders(clockIn, advanceMinutes, useLiveUpdates)
                     }
-
-                    val fishOilEnabled = storage.fishOilNotifyEnabled.first()
-                    val fishOilTime = storage.fishOilNotifyTime.first()
-                    val fishOilDays = storage.fishOilNotifyDays.first()
-
-                    if (fishOilEnabled) {
-                        notificationHelper.scheduleFishOilReminders(fishOilTime, fishOilDays)
-                    }
                 } catch (e: Exception) {
                     Log.e("BootReceiver", "Error re-scheduling notifications after boot", e)
                 } finally {

@@ -39,7 +39,6 @@ class MobileNotificationHelper(private val context: Context) {
         const val LUNCH_DND_END_NOTIFICATION_ID = 5552
         const val FORGET_CLOCK_OUT_NOTIFICATION_ID = 7777
         const val LIVE_UPDATE_NOTIFICATION_ID = 8888
-        const val FISH_OIL_NOTIFICATION_ID = 9999
     }
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -55,7 +54,7 @@ class MobileNotificationHelper(private val context: Context) {
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "WiXtar 打卡可下班時間提醒與魚油提醒"
+                description = "WiXtar 打卡可下班時間提醒"
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 300, 200, 300)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
@@ -170,12 +169,15 @@ class MobileNotificationHelper(private val context: Context) {
     fun scheduleReminders(
         clockInTimeStr: String,
         advanceMinutes: Int = 10,
-        useLiveUpdates: Boolean = false
+        useLiveUpdates: Boolean = false,
+        mockOffWorkTimeStr: String = ""
     ) {
         try {
             val formatter = DateTimeFormatter.ofPattern("HH:mm")
             
-            val offWorkTime = if (clockInTimeStr.isNotBlank()) {
+            val offWorkTime = if (mockOffWorkTimeStr.isNotBlank()) {
+                LocalTime.parse(mockOffWorkTimeStr.trim(), formatter)
+            } else if (clockInTimeStr.isNotBlank()) {
                 val clockInTime = LocalTime.parse(clockInTimeStr.substringBefore(" ").trim(), formatter)
                 clockInTime.plusHours(9)
             } else {
@@ -300,30 +302,6 @@ class MobileNotificationHelper(private val context: Context) {
         }
     }
 
-    fun scheduleFishOilReminders(timeStr: String, daysCsv: String) {
-        try {
-            val formatter = DateTimeFormatter.ofPattern("HH:mm")
-            val targetTime = LocalTime.parse(timeStr.trim(), formatter)
-            val selectedDays = daysCsv.split(",").mapNotNull { it.trim().toIntOrNull() }
-
-            val today = LocalDate.now()
-            for (i in 0..6) {
-                val candidateDate = today.plusDays(i.toLong())
-                val dayIso = candidateDate.dayOfWeek.value
-                if (selectedDays.contains(dayIso)) {
-                    val candidateDateTime = ZonedDateTime.of(candidateDate, targetTime, ZoneId.systemDefault())
-                    val millis = candidateDateTime.toInstant().toEpochMilli()
-                    if (millis > System.currentTimeMillis()) {
-                        setAlarm(millis, FISH_OIL_NOTIFICATION_ID, "吃魚油囉", "該吃魚油了！！！")
-                        break
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("MobileNotificationHelper", "Error scheduling fish oil reminders", e)
-        }
-    }
-
     fun postLiveUpdateNotification(
         offWorkTimeMillis: Long,
         title: String = "下班時間倒數",
@@ -364,46 +342,9 @@ class MobileNotificationHelper(private val context: Context) {
         }
     }
 
-    fun transformLiveUpdateToOffWork() {
-        try {
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val intent = Intent(context, MainActivity::class.java)
-            val pendingIntent = PendingIntent.getActivity(
-                context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-
-            val punchIntent = Intent(context, OffWorkNotificationActionReceiver::class.java).apply {
-                action = OffWorkNotificationActionReceiver.ACTION_OFF_WORK_PUNCH
-            }
-            val punchPendingIntent = PendingIntent.getBroadcast(
-                context, 1002, punchIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-
-            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_cloud_clock)
-                .setContentTitle("可以下班囉，辛苦了")
-                .setContentText("要記得打卡呦")
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
-                .setAutoCancel(true)
-                .setOngoing(false)
-                .setUsesChronometer(false)
-                .setContentIntent(pendingIntent)
-                .addAction(
-                    R.drawable.ic_cloud_clock,
-                    "打卡",
-                    punchPendingIntent
-                )
-
-            manager.notify(LIVE_UPDATE_NOTIFICATION_ID, builder.build())
-            Log.d("MobileNotificationHelper", "Transformed Live Update into off-work prompt notification in-place")
-        } catch (e: Exception) {
-            Log.e("MobileNotificationHelper", "Failed to transform Live Update notification", e)
-        }
-    }
-
     fun sendOffWorkPromptNotification() {
         try {
+            cancelLiveUpdateNotification()
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val intent = Intent(context, MainActivity::class.java)
             val pendingIntent = PendingIntent.getActivity(
@@ -462,27 +403,41 @@ class MobileNotificationHelper(private val context: Context) {
         }
     }
 
-    fun sendAutoClockOutSuccessNotification(time: String) {
+    fun transformLiveUpdateToOffWork() {
         try {
-            cancelLiveUpdateNotification()
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val intent = Intent(context, MainActivity::class.java)
             val pendingIntent = PendingIntent.getActivity(
                 context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
 
+            val punchIntent = Intent(context, OffWorkNotificationActionReceiver::class.java).apply {
+                action = OffWorkNotificationActionReceiver.ACTION_OFF_WORK_PUNCH
+            }
+            val punchPendingIntent = PendingIntent.getBroadcast(
+                context, 1002, punchIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_cloud_clock)
-                .setContentTitle("可以下班囉，辛苦了")
-                .setContentText("已在 $time 幫您打卡，可以放心下班")
+                .setContentTitle("可以下班囉!")
+                .setContentText("記得打卡")
                 .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setAutoCancel(true)
+                .setOngoing(false)
+                .setUsesChronometer(false)
                 .setContentIntent(pendingIntent)
+                .addAction(
+                    R.drawable.ic_cloud_clock,
+                    "立即打卡",
+                    punchPendingIntent
+                )
 
-            manager.notify(OFF_WORK_NOTIFICATION_ID, builder.build())
-            Log.d("MobileNotificationHelper", "Sent auto clock out success notification: $time")
+            manager.notify(LIVE_UPDATE_NOTIFICATION_ID, builder.build())
+            Log.d("MobileNotificationHelper", "Transformed Live Update into off-work punch notification in-place")
         } catch (e: Exception) {
-            Log.e("MobileNotificationHelper", "Failed to send auto clock out success notification", e)
+            Log.e("MobileNotificationHelper", "Failed to transform Live Update notification", e)
         }
     }
 
@@ -530,14 +485,8 @@ class MobileNotificationHelper(private val context: Context) {
         try {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            val iconRes = if (title.contains("魚油") || notificationId == FISH_OIL_NOTIFICATION_ID) {
-                R.drawable.ic_fish
-            } else {
-                R.drawable.ic_cloud_clock
-            }
-
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(iconRes)
+                .setSmallIcon(R.drawable.ic_cloud_clock)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -555,18 +504,6 @@ class MobileNotificationHelper(private val context: Context) {
                     R.drawable.ic_cloud_clock,
                     "按下打卡",
                     punchPendingIntent
-                )
-            } else if (title.contains("吃魚油囉") || notificationId == FISH_OIL_NOTIFICATION_ID) {
-                val eatenIntent = Intent(context, FishOilActionReceiver::class.java).apply {
-                    action = FishOilActionReceiver.ACTION_FISH_OIL_EATEN
-                }
-                val eatenPendingIntent = PendingIntent.getBroadcast(
-                    context, 9999, eatenIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-                )
-                builder.addAction(
-                    R.drawable.ic_fish,
-                    "我吃了",
-                    eatenPendingIntent
                 )
             }
 
@@ -649,7 +586,7 @@ class NotificationReceiver : BroadcastReceiver() {
                     } catch (e: Exception) {
                         Log.e("NotificationReceiver", "Error checking forget clock out status", e)
                     } finally {
-                        pendingResult?.finish()
+                        pendingResult.finish()
                     }
                 }
             } else if (requestCode == MobileNotificationHelper.ADVANCE_NOTIFICATION_ID && useLiveUpdates && offWorkTimeMillis > 0) {
@@ -659,21 +596,9 @@ class NotificationReceiver : BroadcastReceiver() {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val storage = AppStorage(context)
-                        val clockOut = storage.clockOutTime.first()
-                        val autoOut = storage.autoClockOutEnabled.first()
                         val notifyBefore = storage.notifyBeforeOffWork.first()
                         val useLiveUpdates = storage.useLiveUpdates.first()
                         val notifyOn = storage.notifyOnOffWork.first()
-
-                        if (!clockOut.isNullOrBlank()) {
-                            helper.cancelLiveUpdateNotification()
-                            return@launch
-                        }
-
-                        if (autoOut) {
-                            // Scenarios 3 & 4: AutoClockOutWorker will handle auto clock-out and notify "已在 xx:xx 幫您打卡，可以放心下班"
-                            return@launch
-                        }
 
                         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                         val activeNotifications = try { manager.activeNotifications } catch (_: Exception) { emptyArray() }
@@ -682,14 +607,14 @@ class NotificationReceiver : BroadcastReceiver() {
                         Log.d("NotificationReceiver", "OFF_WORK_NOTIFICATION_ID triggered: notifyBefore=$notifyBefore, useLiveUpdates=$useLiveUpdates, notifyOn=$notifyOn, isLiveUpdateActive=$isLiveUpdateActive")
 
                         if (notifyBefore && useLiveUpdates && isLiveUpdateActive) {
-                            // Scenario 2 with Live Update active: transform in-place
+                            // Scenario 2 & Scenario 3A: Live Update active -> Transform in-place!
                             helper.transformLiveUpdateToOffWork()
                         } else if (notifyOn) {
-                            // Scenario 2 without Live Update active
+                            // Scenario 3B (Live Update dismissed) OR Live Update OFF & 可下班通知 ON
                             helper.cancelLiveUpdateNotification()
-                            helper.sendOffWorkPromptNotification()
+                            helper.sendNotification("可下班通知", "您已達到 9 小時工作時間，記得打下班卡哦！", MobileNotificationHelper.OFF_WORK_NOTIFICATION_ID)
                         } else {
-                            // Scenario 1: notifyOn == false & autoOut == false
+                            // Scenario 1 OR Live Update dismissed & 可下班通知 OFF
                             helper.cancelLiveUpdateNotification()
                         }
                     } catch (e: Exception) {
@@ -699,11 +624,7 @@ class NotificationReceiver : BroadcastReceiver() {
                     }
                 }
             } else {
-                val targetId = when (requestCode) {
-                    MobileNotificationHelper.FISH_OIL_NOTIFICATION_ID -> MobileNotificationHelper.FISH_OIL_NOTIFICATION_ID
-                    else -> requestCode
-                }
-                helper.sendNotification(title, message, targetId)
+                helper.sendNotification(title, message, requestCode)
             }
         }
     }

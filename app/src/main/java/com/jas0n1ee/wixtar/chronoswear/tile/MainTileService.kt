@@ -259,8 +259,8 @@ private fun createTileEdgeButton(
 
     return LayoutElementBuilders.Box.Builder()
         .addContent(textElement)
-        .setWidth(dp(168f))
-        .setHeight(dp(48f))
+        .setWidth(dp(172f))
+        .setHeight(dp(50f))
         .setModifiers(
             ModifiersBuilders.Modifiers.Builder()
                 .setClickable(clickable)
@@ -269,7 +269,7 @@ private fun createTileEdgeButton(
                         .setColor(argb(bgColorArgb))
                         .setCorner(
                             ModifiersBuilders.Corner.Builder()
-                                .setRadius(dp(24f))
+                                .setRadius(dp(25f))
                                 .build()
                         )
                         .build()
@@ -287,9 +287,6 @@ private fun buildTile(
     inSource: String,
     outSource: String
 ): TileBuilders.Tile {
-    val rootColumn = LayoutElementBuilders.Column.Builder()
-        .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-
     val primaryColor = getPrimaryColor(context)
     val secondaryColor = getSecondaryColor(context)
     val buttonBgColor = getPrimaryContainerColor(context)
@@ -348,9 +345,12 @@ private fun buildTile(
         else -> "再打下班卡"
     }
 
+    val rootColumn = LayoutElementBuilders.Column.Builder()
+        .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+
     rootColumn.addContent(LayoutElementBuilders.Spacer.Builder().setHeight(dp(10f)).build())
     rootColumn.addContent(cardBox)
-    rootColumn.addContent(LayoutElementBuilders.Spacer.Builder().setHeight(dp(12f)).build())
+    rootColumn.addContent(LayoutElementBuilders.Spacer.Builder().setHeight(dp(8f)).build())
 
     if (!isHrNormal) {
         rootColumn.addContent(createTileEdgeButton("重試打卡", 0xFFC62828.toInt(), 0xFFFFFFFF.toInt(), "RETRY_CLICK"))

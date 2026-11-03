@@ -54,16 +54,6 @@ class WearClockViewModel(application: Application) : AndroidViewModel(applicatio
     private var hrCheckJob: Job? = null
     private var buttonResetJob: Job? = null
 
-    init {
-        viewModelScope.launch {
-            WearableDataListenerService.messageEvents.collect { (path, text) ->
-                if (path == "/response_hr_health") {
-                    _isHrSystemNormal.value = (text == "200")
-                }
-            }
-        }
-    }
-
     fun onAppResume() {
         viewModelScope.launch {
             storage.clearClockDataIfExpired()
@@ -145,7 +135,7 @@ class WearClockViewModel(application: Application) : AndroidViewModel(applicatio
         return if (hasNet) {
             repository.checkHrSystemHealth()
         } else if (hasPhone) {
-            var phoneResult: Boolean? = null
+            var phoneResult = false
             try {
                 val nodeClient = Wearable.getNodeClient(getApplication<Application>())
                 val nodes = Tasks.await(nodeClient.connectedNodes)
@@ -154,19 +144,17 @@ class WearClockViewModel(application: Application) : AndroidViewModel(applicatio
                     for (node in nodes) {
                         Tasks.await(messageClient.sendMessage(node.id, "/request_check_hr_health", ByteArray(0)))
                     }
-                    withTimeoutOrNull(2500) {
-                        WearableDataListenerService.messageEvents.collect { (path, text) ->
-                            if (path == "/response_hr_health") {
-                                phoneResult = (text == "200")
-                                return@collect
-                            }
-                        }
+                    val resp = withTimeoutOrNull(2500) {
+                        WearableDataListenerService.messageEvents.first { (path, _) -> path == "/response_hr_health" }
+                    }
+                    if (resp?.second == "200") {
+                        phoneResult = true
                     }
                 }
             } catch (e: Exception) {
                 Log.e("WearClockViewModel", "Failed to check HR health via phone", e)
             }
-            phoneResult ?: false
+            phoneResult
         } else {
             false
         }
@@ -217,15 +205,8 @@ class WearClockViewModel(application: Application) : AndroidViewModel(applicatio
                     val action = if (isClockingInAction) "CLOCK_IN" else "CLOCK_OUT"
                     WearableSyncManager.sendActionToNodes(getApplication(), action)
 
-                    val resp = withTimeoutOrNull(5000) {
-                        var res: String? = null
-                        WearableDataListenerService.messageEvents.collect { (path, text) ->
-                            if (path == "/response_punch") {
-                                res = text
-                                return@collect
-                            }
-                        }
-                        res
+                    val resp = withTimeoutOrNull(8000) {
+                        WearableDataListenerService.messageEvents.first { (path, _) -> path == "/response_punch" }.second
                     }
 
                     if (resp?.startsWith("SUCCESS") == true) {

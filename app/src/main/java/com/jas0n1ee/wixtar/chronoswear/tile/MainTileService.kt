@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
+import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
 import com.jas0n1ee.wixtar.chronoswear.notification.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +59,10 @@ class MainTileService : TileService() {
 
             val isNet = isNetworkAvailable(applicationContext)
             val isPhone = checkPhoneConnected(applicationContext)
+
+            if (lastClickId == "PUNCH_CLICK" || lastClickId == "RETRY_CLICK") {
+                VibrationUtil.vibrate(applicationContext)
+            }
 
             if (lastClickId == "PUNCH_CLICK") {
                 val currentIn = storage.clockInTime.first()

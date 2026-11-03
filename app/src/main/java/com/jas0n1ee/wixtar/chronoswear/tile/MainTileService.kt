@@ -260,7 +260,7 @@ private fun createTileEdgeButton(
     return LayoutElementBuilders.Box.Builder()
         .addContent(textElement)
         .setWidth(dp(168f))
-        .setHeight(dp(46f))
+        .setHeight(dp(48f))
         .setModifiers(
             ModifiersBuilders.Modifiers.Builder()
                 .setClickable(clickable)
@@ -269,7 +269,7 @@ private fun createTileEdgeButton(
                         .setColor(argb(bgColorArgb))
                         .setCorner(
                             ModifiersBuilders.Corner.Builder()
-                                .setRadius(dp(23f))
+                                .setRadius(dp(24f))
                                 .build()
                         )
                         .build()

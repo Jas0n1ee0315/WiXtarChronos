@@ -61,7 +61,7 @@ class MainTileService : TileService() {
             val isPhone = checkPhoneConnected(applicationContext)
 
             if (lastClickId == "PUNCH_CLICK" || lastClickId == "RETRY_CLICK") {
-                VibrationUtil.vibrate(applicationContext)
+                VibrationUtil.vibrateClick(applicationContext)
             }
 
             if (lastClickId == "PUNCH_CLICK") {
@@ -80,6 +80,7 @@ class MainTileService : TileService() {
                     if (isNet && empId.isNotBlank() && pass.isNotBlank()) {
                         val result = repository.clockIn(empId, pass, cookie, enc, gps)
                         if (result.isSuccess) {
+                            VibrationUtil.vibrateShortSuccess(applicationContext)
                             val time = result.getOrNull() ?: ""
                             if (isClockingIn) {
                                 storage.saveClockInWithSource(time, "雲端")
@@ -87,8 +88,11 @@ class MainTileService : TileService() {
                                 storage.saveClockOutWithSource(time, "雲端")
                             }
                             notificationHelper.showPunchSuccessNotification(typeStr, time)
-                        } else if (isPhone) {
-                            WearableSyncManager.sendActionToNodes(applicationContext, if (isClockingIn) "CLOCK_IN" else "CLOCK_OUT")
+                        } else {
+                            VibrationUtil.vibrateLongFailure(applicationContext)
+                            if (isPhone) {
+                                WearableSyncManager.sendActionToNodes(applicationContext, if (isClockingIn) "CLOCK_IN" else "CLOCK_OUT")
+                            }
                         }
                     } else if (isPhone) {
                         WearableSyncManager.sendActionToNodes(applicationContext, if (isClockingIn) "CLOCK_IN" else "CLOCK_OUT")

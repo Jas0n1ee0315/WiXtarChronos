@@ -30,4 +30,19 @@ object VibrationUtil {
             }
         } catch (_: Exception) {}
     }
+
+    @RequiresPermission(Manifest.permission.VIBRATE)
+    fun vibrateClick(context: Context) {
+        vibrate(context, 50L)
+    }
+
+    @RequiresPermission(Manifest.permission.VIBRATE)
+    fun vibrateShortSuccess(context: Context) {
+        vibrate(context, 100L)
+    }
+
+    @RequiresPermission(Manifest.permission.VIBRATE)
+    fun vibrateLongFailure(context: Context) {
+        vibrate(context, 2000L)
+    }
 }

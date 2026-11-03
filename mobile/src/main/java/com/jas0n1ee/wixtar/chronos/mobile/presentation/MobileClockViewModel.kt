@@ -8,6 +8,7 @@ import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.Wearable
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
+import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
 import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
 import kotlinx.coroutines.Dispatchers
@@ -523,6 +524,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
 
             val result = repository.clockIn(id, pass, ck, en, gps)
             if (result.isSuccess) {
+                VibrationUtil.vibrateShortSuccess(getApplication())
                 val time = result.getOrNull() ?: ""
                 if (isClockingInAction) {
                     storage.saveClockIn(time)
@@ -546,6 +548,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
 
                 fetchCloudData()
             } else {
+                VibrationUtil.vibrateLongFailure(getApplication())
                 _error.value = result.exceptionOrNull()?.message ?: "打卡失敗"
             }
             _isClockingIn.value = false

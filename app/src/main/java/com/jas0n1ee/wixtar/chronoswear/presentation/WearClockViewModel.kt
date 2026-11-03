@@ -11,6 +11,7 @@ import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.Wearable
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
+import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
 import com.jas0n1ee.wixtar.chronoswear.service.WearableDataListenerService
 import kotlinx.coroutines.Job
@@ -237,6 +238,13 @@ class WearClockViewModel(application: Application) : AndroidViewModel(applicatio
     private fun showTemporaryStatus(status: PunchButtonStatus, durationMs: Long) {
         buttonResetJob?.cancel()
         _buttonStatus.value = status
+
+        if (status == PunchButtonStatus.SUCCESS) {
+            VibrationUtil.vibrateShortSuccess(getApplication())
+        } else if (status == PunchButtonStatus.FAILURE || status == PunchButtonStatus.NO_NETWORK || status == PunchButtonStatus.HR_ERROR) {
+            VibrationUtil.vibrateLongFailure(getApplication())
+        }
+
         buttonResetJob = viewModelScope.launch {
             delay(durationMs)
             if (_buttonStatus.value == status) {

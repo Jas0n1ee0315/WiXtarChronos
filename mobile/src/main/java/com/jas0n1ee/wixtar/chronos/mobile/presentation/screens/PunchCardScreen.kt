@@ -289,7 +289,7 @@ fun PunchCardScreen(
         ) {
             Button(
                 onClick = {
-                    VibrationUtil.vibrate(context)
+                    VibrationUtil.vibrateClick(context)
                     viewModel.doClockAction()
                 },
                 enabled = !isClockingIn,

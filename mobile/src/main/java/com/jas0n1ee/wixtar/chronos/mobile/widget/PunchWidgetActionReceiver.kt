@@ -75,7 +75,7 @@ class PunchWidgetActionReceiver : BroadcastReceiver() {
         }
 
         if (action == ACTION_PUNCH_CARD) {
-            VibrationUtil.vibrate(context)
+            VibrationUtil.vibrateClick(context)
             val pendingResult = try { goAsync() } catch (_: Exception) { null }
             CoroutineScope(Dispatchers.IO).launch {
                 try {
@@ -94,6 +94,7 @@ class PunchWidgetActionReceiver : BroadcastReceiver() {
 
                     val result = repository.clockIn(empId, pass, cookie, enc, gps)
                     if (result.isSuccess) {
+                        VibrationUtil.vibrateShortSuccess(context)
                         val time = result.getOrNull() ?: ""
                         val typeStr = if (isClockingInAction) "上班卡" else "下班卡"
                         if (isClockingInAction) {
@@ -106,6 +107,7 @@ class PunchWidgetActionReceiver : BroadcastReceiver() {
                         notificationHelper.sendNotification("WiXtar 桌面打卡成功", "已成功打$typeStr ($time)")
                         Log.d("PunchWidgetReceiver", "Widget punched card successfully: $time")
                     } else {
+                        VibrationUtil.vibrateLongFailure(context)
                         val errorMsg = result.exceptionOrNull()?.message ?: "打卡失敗"
                         notificationHelper.sendNotification("WiXtar 桌面打卡失敗", errorMsg)
                         Log.e("PunchWidgetReceiver", "Widget punch failed: $errorMsg")

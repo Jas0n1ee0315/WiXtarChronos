@@ -8,6 +8,7 @@ import android.content.Intent
 import android.util.Log
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
+import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -74,6 +75,7 @@ class PunchWidgetActionReceiver : BroadcastReceiver() {
         }
 
         if (action == ACTION_PUNCH_CARD) {
+            VibrationUtil.vibrate(context)
             val pendingResult = try { goAsync() } catch (_: Exception) { null }
             CoroutineScope(Dispatchers.IO).launch {
                 try {

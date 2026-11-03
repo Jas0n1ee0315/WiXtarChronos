@@ -806,7 +806,7 @@ fun MobileSettingsScreen(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text("模擬下班時間 (測試 Live Update)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                                Text("僅用於測試 Live Update 倒數推播效果，即便開啟自動打卡亦絕不發起真實打卡", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("僅用於測試 Live Update 倒數推播效果，絕不發起真實打卡", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),

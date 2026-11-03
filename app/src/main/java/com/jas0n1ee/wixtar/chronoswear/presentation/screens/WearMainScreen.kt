@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,7 @@ import androidx.wear.compose.material3.EdgeButton
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
+import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronoswear.presentation.PunchButtonStatus
 import com.jas0n1ee.wixtar.chronoswear.presentation.WearClockViewModel
 import java.time.LocalTime
@@ -229,9 +231,12 @@ fun WearMainScreen(
             }
         }
 
+        val context = LocalContext.current
+
         // Material 3 Expressive EdgeButton (Hugs bottom screen edge seamlessly!)
         EdgeButton(
             onClick = {
+                VibrationUtil.vibrate(context)
                 if (buttonStatus == PunchButtonStatus.HR_ERROR) {
                     viewModel.startHrHealthCheckLoop()
                 } else {

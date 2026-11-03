@@ -14,12 +14,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.mobile.R
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.MobileClockViewModel
 import java.time.LocalTime
@@ -276,6 +278,8 @@ fun PunchCardScreen(
             }
         }
 
+        val context = LocalContext.current
+
         // Fixed Floating Punch Card Action Button (Pinned right above the Tab Bar)
         Box(
             modifier = Modifier
@@ -284,7 +288,10 @@ fun PunchCardScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Button(
-                onClick = { viewModel.doClockAction() },
+                onClick = {
+                    VibrationUtil.vibrate(context)
+                    viewModel.doClockAction()
+                },
                 enabled = !isClockingIn,
                 modifier = Modifier
                     .fillMaxWidth()

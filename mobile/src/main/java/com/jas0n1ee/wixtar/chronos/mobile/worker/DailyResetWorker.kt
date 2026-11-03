@@ -37,9 +37,7 @@ class DailyResetWorker(
         val storage = AppStorage(applicationContext)
         storage.clearClockDataIfExpired()
 
-        // Re-schedule Auto Punch and Lunch DND for the new day
-        AutoPunchScheduler.scheduleAutoPunch(applicationContext)
-
+        // Re-schedule Lunch DND for the new day
         val lunchDndEnabled = storage.lunchDndEnabled.first()
         if (lunchDndEnabled) {
             val dndStart = storage.lunchDndStartTime.first()

@@ -46,6 +46,7 @@ fun PunchCardScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.checkAndClearExpiredClockData()
                 viewModel.checkHrHealth()
+                viewModel.fetchCloudData()
             } else if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
                 viewModel.stopHrHealthRetryLoop()
             }

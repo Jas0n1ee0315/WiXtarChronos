@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import java.time.LocalDate
 
 enum class PunchButtonStatus {
     NORMAL,
@@ -195,6 +196,11 @@ class WearClockViewModel(application: Application) : AndroidViewModel(applicatio
                     } else {
                         storage.saveClockOutWithSource(time, source)
                     }
+                    val todayStr = LocalDate.now().toString()
+                    val updatedIn = if (isClockingInAction) time else clockInTime.value
+                    val updatedOut = if (!isClockingInAction) time else clockOutTime.value
+                    WearableSyncManager.syncClockStatus(getApplication(), updatedIn, updatedOut, todayStr)
+
                     showTemporaryStatus(PunchButtonStatus.SUCCESS, 10000)
                 } else {
                     showTemporaryStatus(PunchButtonStatus.FAILURE, 3000)

@@ -30,6 +30,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.guava.future
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -87,6 +88,11 @@ class MainTileService : TileService() {
                             } else {
                                 storage.saveClockOutWithSource(time, "雲端")
                             }
+                            val todayStr = LocalDate.now().toString()
+                            val updatedIn = if (isClockingIn) time else currentIn
+                            val updatedOut = if (!isClockingIn) time else currentOut
+                            WearableSyncManager.syncClockStatus(applicationContext, updatedIn, updatedOut, todayStr)
+
                             notificationHelper.showPunchSuccessNotification(typeStr, time)
                         } else {
                             VibrationUtil.vibrateLongFailure(applicationContext)

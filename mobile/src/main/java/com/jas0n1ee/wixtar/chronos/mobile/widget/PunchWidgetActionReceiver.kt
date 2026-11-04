@@ -9,11 +9,13 @@ import android.util.Log
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
 import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
+import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
 import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class PunchWidgetActionReceiver : BroadcastReceiver() {
     companion object {
@@ -102,6 +104,14 @@ class PunchWidgetActionReceiver : BroadcastReceiver() {
                             notificationHelper.scheduleReminders(time)
                         } else {
                             storage.saveClockOut(time)
+                        }
+
+                        val enableWatchSync = storage.enableWatchSync.first()
+                        if (enableWatchSync) {
+                            val todayStr = LocalDate.now().toString()
+                            val updatedIn = if (isClockingInAction) time else storage.clockInTime.first()
+                            val updatedOut = if (!isClockingInAction) time else storage.clockOutTime.first()
+                            WearableSyncManager.syncClockStatus(context, updatedIn, updatedOut, todayStr)
                         }
 
                         notificationHelper.sendNotification("WiXtar 桌面打卡成功", "已成功打$typeStr ($time)")

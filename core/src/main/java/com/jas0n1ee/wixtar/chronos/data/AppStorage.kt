@@ -1,8 +1,11 @@
 package com.jas0n1ee.wixtar.chronos.data
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import androidx.wear.tiles.TileService
+import android.os.Build
+import android.service.quicksettings.TileService as QsTileService
+import androidx.wear.tiles.TileService as WearTileService
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -144,8 +147,15 @@ class AppStorage(private val context: Context) {
     private fun requestWidgetsAndTilesUpdate(context: Context) {
         try {
             @Suppress("UNCHECKED_CAST")
-            val clazz = Class.forName("com.jas0n1ee.wixtar.chronoswear.tile.MainTileService") as Class<out TileService>
-            TileService.getUpdater(context).requestUpdate(clazz)
+            val clazz = Class.forName("com.jas0n1ee.wixtar.chronoswear.tile.MainTileService") as Class<out WearTileService>
+            WearTileService.getUpdater(context).requestUpdate(clazz)
+        } catch (_: Exception) {}
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val component = ComponentName(context, "com.jas0n1ee.wixtar.chronos.mobile.service.WiXtarTileService")
+                QsTileService.requestListeningState(context, component)
+            }
         } catch (_: Exception) {}
 
         try {
@@ -165,8 +175,6 @@ class AppStorage(private val context: Context) {
             val today = LocalDate.now().toString()
             prefs[CLOCK_IN_TIME] = time
             prefs[CLOCK_IN_SOURCE] = source
-            prefs[CLOCK_OUT_TIME] = ""
-            prefs[CLOCK_OUT_SOURCE] = ""
             prefs[LAST_CLOCK_DATE] = today
         }
         requestWidgetsAndTilesUpdate(context)

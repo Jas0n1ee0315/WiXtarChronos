@@ -45,9 +45,10 @@ class MobileWearableListenerService : WearableListenerService() {
                 val clockOut = dataMap.getString(WearableSyncManager.KEY_CLOCK_OUT) ?: ""
 
                 scope.launch {
-                    if (clockIn.isNotBlank()) storage.saveClockIn(clockIn)
-                    if (clockOut.isNotBlank()) storage.saveClockOut(clockOut)
-                    Log.d("MobileWearableListener", "Received & saved updated clock status from Wear OS Watch")
+                    if (clockIn.isNotBlank() || clockOut.isNotBlank()) {
+                        storage.saveClockDataWithSources(clockIn, "來自手錶", clockOut, "來自手錶")
+                        Log.d("MobileWearableListener", "Received & saved updated clock status from Wear OS Watch: in=$clockIn, out=$clockOut")
+                    }
                 }
             }
         }

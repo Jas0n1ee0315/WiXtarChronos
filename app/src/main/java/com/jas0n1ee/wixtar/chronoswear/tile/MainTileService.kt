@@ -254,12 +254,18 @@ private fun createTileEdgeButton(
         .setOnClick(ActionBuilders.LoadAction.Builder().build())
         .build()
 
+    val fontSizeSp = when {
+        text.contains("\n") -> 11f
+        text.length >= 5 -> 13f
+        else -> 15f
+    }
+
     val textElement = LayoutElementBuilders.Text.Builder()
         .setText(text)
         .setFontStyle(
             LayoutElementBuilders.FontStyle.Builder()
                 .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
-                .setSize(DimensionBuilders.sp(15f))
+                .setSize(DimensionBuilders.sp(fontSizeSp))
                 .setColor(argb(textColorArgb))
                 .build()
         )

@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -247,11 +248,17 @@ fun WearMainScreen(
             colors = buttonColors,
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
+            val fontSize = when {
+                buttonText.contains("\n") -> 11.sp
+                buttonText.length >= 5 -> 13.sp
+                else -> 15.sp
+            }
             Text(
                 text = buttonText,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = fontSize),
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = if (buttonText.contains("\n")) 2 else 1
             )
         }
     }

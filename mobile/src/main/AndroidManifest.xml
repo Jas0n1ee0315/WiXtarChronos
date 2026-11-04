@@ -1508,6 +1508,8 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.jas0n1ee.wixtar.chronos.ACTION_PUNCH_CARD" />
+                <action android:name="com.jas0n1ee.wixtar.chronos.UPDATE_WIDGETS" />
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
         </receiver>
 

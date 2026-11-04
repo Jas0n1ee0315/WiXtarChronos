@@ -13,8 +13,11 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -155,6 +158,16 @@ class AppStorage(private val context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 val component = ComponentName(context, "com.jas0n1ee.wixtar.chronos.mobile.service.WiXtarTileService")
                 QsTileService.requestListeningState(context, component)
+            }
+        } catch (_: Exception) {}
+
+        try {
+            val clazz = Class.forName("com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidgetActionReceiver")
+            val method = clazz.getMethod("updateAllWidgets", Context::class.java)
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    method.invoke(null, context)
+                } catch (_: Exception) {}
             }
         } catch (_: Exception) {}
 

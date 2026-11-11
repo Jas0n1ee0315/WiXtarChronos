@@ -7,6 +7,7 @@ import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
+import com.jas0n1ee.wixtar.chronoswear.tile.MainTileService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -49,7 +50,10 @@ class WearableDataListenerService : WearableListenerService() {
                 scope.launch {
                     if (clockIn.isNotBlank() || clockOut.isNotBlank()) {
                         storage.saveClockDataWithSources(clockIn, "來自手機", clockOut, "來自手機")
+                    } else {
+                        storage.clearClockData()
                     }
+                    MainTileService.forceUpdate(applicationContext)
                     Log.d("WearableDataListener", "Received & saved clock status on Watch: in=$clockIn, out=$clockOut")
                 }
             }

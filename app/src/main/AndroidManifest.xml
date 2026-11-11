@@ -9,8 +9,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
+        android:name=".WearApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="WiXtar 打卡"
@@ -49,6 +51,27 @@
             <intent-filter>
                 <action android:name="com.jas0n1ee.wixtar.chronoswear.ACTION_TILE_PUNCH" />
                 <action android:name="com.jas0n1ee.wixtar.chronoswear.ACTION_TILE_RETRY" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronoswear.receiver.WearDailyResetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.jas0n1ee.wixtar.chronoswear.ACTION_DAILY_MIDNIGHT_RESET" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronoswear.receiver.WearBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
             </intent-filter>
         </receiver>
 

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.util.Log
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
+import com.jas0n1ee.wixtar.chronos.mobile.worker.DailyResetWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -16,13 +17,19 @@ class BootReceiver : BroadcastReceiver() {
         val action = intent.action
         if (action == Intent.ACTION_BOOT_COMPLETED ||
             action == Intent.ACTION_LOCKED_BOOT_COMPLETED ||
-            action == Intent.ACTION_MY_PACKAGE_REPLACED
+            action == Intent.ACTION_MY_PACKAGE_REPLACED ||
+            action == Intent.ACTION_TIME_CHANGED ||
+            action == Intent.ACTION_TIMEZONE_CHANGED ||
+            action == Intent.ACTION_DATE_CHANGED
         ) {
-            Log.d("BootReceiver", "Reboot/Package update detected ($action), re-scheduling notifications...")
+            Log.d("BootReceiver", "System event detected ($action), syncing daily reset and reminders...")
 
             val pendingResult = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
+                    DailyResetWorker.performDailyReset(context)
+                    DailyResetWorker.scheduleDailyReset(context)
+
                     val storage = AppStorage(context)
                     val notificationHelper = MobileNotificationHelper(context)
 
@@ -36,7 +43,7 @@ class BootReceiver : BroadcastReceiver() {
                         notificationHelper.scheduleReminders(clockIn, advanceMinutes, useLiveUpdates)
                     }
                 } catch (e: Exception) {
-                    Log.e("BootReceiver", "Error re-scheduling notifications after boot", e)
+                    Log.e("BootReceiver", "Error re-scheduling after $action", e)
                 } finally {
                     pendingResult.finish()
                 }

@@ -88,6 +88,7 @@ class MobileWearableListenerService : WearableListenerService() {
                         }
                     }
                 } else {
+                    storage.clearClockDataIfExpired()
                     val empId = storage.empId.first()
                     val pass = storage.password.first()
                     val cookie = storage.cookie.first()

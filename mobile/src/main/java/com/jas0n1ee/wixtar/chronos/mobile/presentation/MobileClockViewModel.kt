@@ -8,9 +8,11 @@ import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.Wearable
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
+import com.jas0n1ee.wixtar.chronos.data.MidnightAlarmHelper
 import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
 import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
+import com.jas0n1ee.wixtar.chronos.mobile.worker.DailyResetWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -54,6 +56,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     private val _cloudInTime = MutableStateFlow<String?>(null)
     private val _cloudOutTime = MutableStateFlow<String?>(null)
     private val _cloudDate = MutableStateFlow<String?>(null)
+    private val _currentDate = MutableStateFlow(LocalDate.now().toString())
 
     private val _isHrSystemNormal = MutableStateFlow<Boolean?>(null)
     val isHrSystemNormal: StateFlow<Boolean?> = _isHrSystemNormal
@@ -66,8 +69,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     val cloudInTime: StateFlow<String?> = _cloudInTime
     val cloudOutTime: StateFlow<String?> = _cloudOutTime
 
-    val clockInTime: StateFlow<String?> = combine(_cloudInTime, storage.clockInTime, _cloudDate) { cloud, local, cloudDate ->
-        val today = LocalDate.now().toString()
+    val clockInTime: StateFlow<String?> = combine(_cloudInTime, storage.clockInTime, _cloudDate, _currentDate) { cloud, local, cloudDate, today ->
         val validCloud = if (cloudDate == today) cloud else null
         val cleanCloud = validCloud?.substringBefore(" ")?.take(5)
         val cleanLocal = local?.take(5)
@@ -79,8 +81,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val clockOutTime: StateFlow<String?> = combine(_cloudOutTime, storage.clockOutTime, _cloudDate) { cloud, local, cloudDate ->
-        val today = LocalDate.now().toString()
+    val clockOutTime: StateFlow<String?> = combine(_cloudOutTime, storage.clockOutTime, _cloudDate, _currentDate) { cloud, local, cloudDate, today ->
         val validCloud = if (cloudDate == today) cloud else null
         val cleanCloud = validCloud?.substringBefore(" ")?.take(5)
         val cleanLocal = local?.take(5)
@@ -108,8 +109,10 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     val connectedNodesCount: StateFlow<Int> = _connectedNodesCount
 
     init {
+        DailyResetWorker.scheduleDailyReset(getApplication())
+
         viewModelScope.launch {
-            storage.clearClockDataIfExpired()
+            clearExpiredClockDataInternal()
             checkConnectedWearables()
             checkHrHealth()
             
@@ -117,6 +120,13 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 if (ck.isNotBlank()) {
                     fetchCloudData()
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            while (isActive) {
+                delay(MidnightAlarmHelper.millisUntilNextMidnight())
+                clearExpiredClockDataInternal()
             }
         }
     }
@@ -217,16 +227,24 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
 
     fun checkAndClearExpiredClockData() {
         viewModelScope.launch {
-            val today = LocalDate.now().toString()
-            val lastDate = storage.lastClockDate.first()
+            clearExpiredClockDataInternal()
+        }
+    }
 
-            if (lastDate != null && lastDate != today) {
-                Log.d("MobileClockViewModel", "Detected expired clock data from date: $lastDate (today: $today). Clearing...")
-                _cloudInTime.value = null
-                _cloudOutTime.value = null
-                _cloudDate.value = null
-                storage.clearClockDataIfExpired()
-            } else if (_cloudDate.value != null && _cloudDate.value != today) {
+    private suspend fun clearExpiredClockDataInternal() {
+        val today = LocalDate.now().toString()
+        _currentDate.value = today
+        val lastDate = storage.lastClockDate.first()
+
+        if (lastDate != null && lastDate != today) {
+            Log.d("MobileClockViewModel", "Detected expired clock data from date: $lastDate (today: $today). Clearing...")
+            _cloudInTime.value = null
+            _cloudOutTime.value = null
+            _cloudDate.value = null
+            storage.clearClockDataIfExpired()
+        } else {
+            storage.clearClockDataIfExpired()
+            if (_cloudDate.value != null && _cloudDate.value != today) {
                 _cloudInTime.value = null
                 _cloudOutTime.value = null
                 _cloudDate.value = null
@@ -238,7 +256,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             _isRefreshing.value = true
             checkHrHealth()
-            checkAndClearExpiredClockData()
+            clearExpiredClockDataInternal()
             val ck = storage.cookie.first().trim()
             if (ck.isNotBlank()) {
                 repository.getCloudClockInfo(ck).onSuccess { (cloudIn, cloudOut, _) ->

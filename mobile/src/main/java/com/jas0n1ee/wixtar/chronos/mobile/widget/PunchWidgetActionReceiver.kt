@@ -22,6 +22,13 @@ class PunchWidgetActionReceiver : BroadcastReceiver() {
         const val ACTION_PUNCH_CARD = "com.jas0n1ee.wixtar.chronos.ACTION_PUNCH_CARD"
         const val ACTION_UPDATE_WIDGETS = "com.jas0n1ee.wixtar.chronos.UPDATE_WIDGETS"
 
+        @JvmStatic
+        fun triggerUpdateAllWidgets(context: Context) {
+            CoroutineScope(Dispatchers.IO).launch {
+                updateAllWidgets(context)
+            }
+        }
+
         suspend fun updateAllWidgets(context: Context) {
             try {
                 val appWidgetManager = AppWidgetManager.getInstance(context)
@@ -68,6 +75,7 @@ class PunchWidgetActionReceiver : BroadcastReceiver() {
             val pendingResult = try { goAsync() } catch (_: Exception) { null }
             CoroutineScope(Dispatchers.IO).launch {
                 try {
+                    AppStorage(context).clearClockDataIfExpired()
                     updateAllWidgets(context)
                 } finally {
                     pendingResult?.finish()
@@ -82,6 +90,7 @@ class PunchWidgetActionReceiver : BroadcastReceiver() {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val storage = AppStorage(context)
+                    storage.clearClockDataIfExpired()
                     val repository = ClockRepository(storage)
                     val notificationHelper = MobileNotificationHelper(context)
 

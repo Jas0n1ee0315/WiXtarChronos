@@ -26,6 +26,7 @@ class WiXtarTileService : TileService() {
 
         scope.launch {
             val storage = AppStorage(applicationContext)
+            storage.clearClockDataIfExpired()
             val repository = ClockRepository(storage)
             val notificationHelper = MobileNotificationHelper(applicationContext)
 
@@ -79,6 +80,7 @@ class WiXtarTileService : TileService() {
     private suspend fun updateTileState() {
         val tile = qsTile ?: return
         val storage = AppStorage(applicationContext)
+        storage.clearClockDataIfExpired()
 
         val clockIn = storage.clockInTime.first()
         val clockOut = storage.clockOutTime.first()

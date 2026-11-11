@@ -15,6 +15,7 @@
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 
     <application
+        android:name=".WiXtarApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -1532,6 +1533,17 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.receiver.DailyResetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.jas0n1ee.wixtar.chronos.ACTION_DAILY_MIDNIGHT_RESET" />
             </intent-filter>
         </receiver>
 

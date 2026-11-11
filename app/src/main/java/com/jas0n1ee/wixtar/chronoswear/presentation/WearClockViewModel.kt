@@ -11,9 +11,11 @@ import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.Wearable
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
+import com.jas0n1ee.wixtar.chronos.data.MidnightAlarmHelper
 import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
 import com.jas0n1ee.wixtar.chronoswear.service.WearableDataListenerService
+import com.jas0n1ee.wixtar.chronoswear.worker.WearDailyResetWorker
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,6 +57,16 @@ class WearClockViewModel(application: Application) : AndroidViewModel(applicatio
 
     private var hrCheckJob: Job? = null
     private var buttonResetJob: Job? = null
+
+    init {
+        WearDailyResetWorker.scheduleDailyReset(getApplication())
+        viewModelScope.launch {
+            while (isActive) {
+                delay(MidnightAlarmHelper.millisUntilNextMidnight())
+                storage.clearClockDataIfExpired()
+            }
+        }
+    }
 
     fun onAppResume() {
         viewModelScope.launch {

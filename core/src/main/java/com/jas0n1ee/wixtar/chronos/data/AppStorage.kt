@@ -13,11 +13,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -163,12 +160,8 @@ class AppStorage(private val context: Context) {
 
         try {
             val clazz = Class.forName("com.jas0n1ee.wixtar.chronos.mobile.widget.PunchWidgetActionReceiver")
-            val method = clazz.getMethod("updateAllWidgets", Context::class.java)
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    method.invoke(null, context)
-                } catch (_: Exception) {}
-            }
+            val method = clazz.getMethod("triggerUpdateAllWidgets", Context::class.java)
+            method.invoke(null, context)
         } catch (_: Exception) {}
 
         try {
@@ -219,17 +212,35 @@ class AppStorage(private val context: Context) {
         requestWidgetsAndTilesUpdate(context)
     }
 
-    suspend fun clearClockDataIfExpired() {
+    suspend fun clearClockData() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(CLOCK_IN_TIME)
+            prefs.remove(CLOCK_IN_SOURCE)
+            prefs.remove(CLOCK_OUT_TIME)
+            prefs.remove(CLOCK_OUT_SOURCE)
+            prefs.remove(LAST_CLOCK_DATE)
+        }
+        requestWidgetsAndTilesUpdate(context)
+    }
+
+    suspend fun clearClockDataIfExpired(): Boolean {
+        var cleared = false
         context.dataStore.edit { prefs ->
             val today = LocalDate.now().toString()
             val lastDate = prefs[LAST_CLOCK_DATE]
-            if (lastDate != null && lastDate != today) {
-                prefs[CLOCK_IN_TIME] = ""
-                prefs[CLOCK_IN_SOURCE] = ""
-                prefs[CLOCK_OUT_TIME] = ""
-                prefs[CLOCK_OUT_SOURCE] = ""
+            val hasStoredClockData = !prefs[CLOCK_IN_TIME].isNullOrEmpty() || !prefs[CLOCK_OUT_TIME].isNullOrEmpty()
+            if ((lastDate != null && lastDate != today) || (lastDate == null && hasStoredClockData)) {
+                prefs.remove(CLOCK_IN_TIME)
+                prefs.remove(CLOCK_IN_SOURCE)
+                prefs.remove(CLOCK_OUT_TIME)
+                prefs.remove(CLOCK_OUT_SOURCE)
+                prefs.remove(LAST_CLOCK_DATE)
+                cleared = true
             }
         }
-        requestWidgetsAndTilesUpdate(context)
+        if (cleared) {
+            requestWidgetsAndTilesUpdate(context)
+        }
+        return cleared
     }
 }

@@ -23,11 +23,15 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Cookie
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Visibility
@@ -54,6 +58,7 @@ import com.jas0n1ee.wixtar.chronos.mobile.presentation.MobileClockViewModel
 enum class SettingsSubCategory(val title: String) {
     MAIN("系統設定"),
     AUTH("打卡驗證資訊"),
+    AGENT("職務代理人"),
     NOTIFICATIONS("推播通知"),
     WEAR_OS("WearOS 整合")
 }
@@ -62,13 +67,19 @@ enum class SettingsSubCategory(val title: String) {
 @Composable
 fun MobileSettingsScreen(
     viewModel: MobileClockViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialSubCategory: SettingsSubCategory = SettingsSubCategory.MAIN,
+    onBack: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-    var currentSubCategory by remember { mutableStateOf(SettingsSubCategory.MAIN) }
+    var currentSubCategory by remember(initialSubCategory) { mutableStateOf(initialSubCategory) }
 
-    BackHandler(enabled = currentSubCategory != SettingsSubCategory.MAIN) {
-        currentSubCategory = SettingsSubCategory.MAIN
+    BackHandler(enabled = currentSubCategory != SettingsSubCategory.MAIN || onBack != null) {
+        if (currentSubCategory != SettingsSubCategory.MAIN) {
+            currentSubCategory = SettingsSubCategory.MAIN
+        } else {
+            onBack?.invoke()
+        }
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -99,6 +110,14 @@ fun MobileSettingsScreen(
     val useLiveUpdates by viewModel.useLiveUpdates.collectAsState()
     val enableWatchSync by viewModel.enableWatchSync.collectAsState()
     val connectedNodesCount by viewModel.connectedNodesCount.collectAsState()
+    val isLoggingIn by viewModel.isLoggingIn.collectAsState()
+    val agentEmpId by viewModel.agentEmpId.collectAsState()
+    val agentName by viewModel.agentName.collectAsState()
+    val agentDept by viewModel.agentDept.collectAsState()
+    val isQueryingAgent by viewModel.isQueryingAgent.collectAsState()
+
+    val savedAgents by viewModel.savedAgents.collectAsState()
+    var tempAgentEmpId by remember { mutableStateOf("") }
 
     val forgetClockOutEnabled by viewModel.forgetClockOutNotifyEnabled.collectAsState()
     val forgetClockOutTime by viewModel.forgetClockOutNotifyTime.collectAsState()
@@ -390,19 +409,38 @@ fun MobileSettingsScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "系統設定選單",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
+                    if (onBack != null) {
+                        SettingsSubHeader(
+                            title = "系統設定",
+                            onBack = onBack
+                        )
+                    } else {
+                        Text(
+                            text = "系統設定選單",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
 
                     SettingsMenuItemCard(
                         title = "打卡驗證資訊",
-                        subtitle = "員工工號、密碼、Cookie、enc、GPS 與設定檔匯入",
+                        subtitle = "員工工號、密碼（可自動取得 Cookie 與 enc）、GPS 與設定檔匯入",
                         icon = Icons.Default.VpnKey,
                         onClick = { currentSubCategory = SettingsSubCategory.AUTH }
+                    )
+
+                    SettingsMenuItemCard(
+                        title = "職務代理人",
+                        subtitle = if (agentEmpId.isNotBlank()) {
+                            val dept = if (agentDept.isNotBlank()) "（$agentDept）" else ""
+                            "目前設定：$agentEmpId $agentName$dept"
+                        } else {
+                            "尚未設定預設職務代理人（請假單使用）"
+                        },
+                        icon = Icons.Default.Person,
+                        onClick = { currentSubCategory = SettingsSubCategory.AGENT }
                     )
 
                     SettingsMenuItemCard(
@@ -491,13 +529,30 @@ fun MobileSettingsScreen(
                                 shape = RoundedCornerShape(16.dp)
                             )
 
+                            FilledTonalButton(
+                                onClick = { viewModel.fetchCredentialsByLogin(tempEmpId, tempPassword) },
+                                enabled = !isLoggingIn && tempEmpId.isNotBlank() && tempPassword.isNotBlank(),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                if (isLoggingIn) {
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("正在登入 HR 系統取得憑證...")
+                                } else {
+                                    Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("自動登入取得 Cookie 與 enc")
+                                }
+                            }
+
                             OutlinedTextField(
                                 value = tempCookie,
                                 onValueChange = {
                                     tempCookie = it
                                     autoSave(cookieVal = it)
                                 },
-                                label = { Text("Cookie") },
+                                label = { Text("Cookie（選填，未填時會自動登入取得）") },
                                 leadingIcon = { Icon(Icons.Default.Cookie, contentDescription = null) },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp)
@@ -509,7 +564,7 @@ fun MobileSettingsScreen(
                                     tempEnc = it
                                     autoSave(encVal = it)
                                 },
-                                label = { Text("enc (加密金鑰)") },
+                                label = { Text("enc (加密金鑰，選填，可自動取得)") },
                                 leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp)
@@ -535,6 +590,140 @@ fun MobileSettingsScreen(
                                 singleLine = true,
                                 shape = RoundedCornerShape(16.dp)
                             )
+                        }
+                    }
+                }
+            }
+
+            SettingsSubCategory.AGENT -> {
+                Column(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    SettingsSubHeader(
+                        title = "職務代理人",
+                        onBack = { currentSubCategory = SettingsSubCategory.MAIN }
+                    )
+
+                    ElevatedCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = tempAgentEmpId,
+                                onValueChange = { tempAgentEmpId = it.uppercase() },
+                                label = { Text("代理人工號 (例如 E0001)") },
+                                leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(16.dp)
+                            )
+
+                            Button(
+                                onClick = {
+                                    viewModel.lookupAndSaveAgent(tempAgentEmpId)
+                                    tempAgentEmpId = ""
+                                },
+                                enabled = !isQueryingAgent && tempAgentEmpId.isNotBlank(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                if (isQueryingAgent) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("正在查詢同仁資料...")
+                                } else {
+                                    Text("查詢並新增代理人", fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            if (savedAgents.isNotEmpty()) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    savedAgents.forEach { agent ->
+                                        val isDefault = agent.empId == agentEmpId
+                                        Surface(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(16.dp),
+                                            color = if (isDefault) {
+                                                MaterialTheme.colorScheme.secondaryContainer
+                                            } else {
+                                                MaterialTheme.colorScheme.surfaceContainerHigh
+                                            }
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                if (savedAgents.size > 1) {
+                                                    IconButton(
+                                                        onClick = { viewModel.setDefaultAgent(agent) },
+                                                        modifier = Modifier.size(36.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = if (isDefault) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                                                            contentDescription = if (isDefault) "預設代理人" else "設為預設代理人",
+                                                            tint = if (isDefault) {
+                                                                androidx.compose.ui.graphics.Color(0xFFFFB300)
+                                                            } else {
+                                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                                            }
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                }
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "${agent.empId} ${agent.name}",
+                                                        style = MaterialTheme.typography.titleMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (isDefault) {
+                                                            MaterialTheme.colorScheme.onSecondaryContainer
+                                                        } else {
+                                                            MaterialTheme.colorScheme.onSurface
+                                                        }
+                                                    )
+                                                    if (agent.deptName.isNotBlank()) {
+                                                        Text(
+                                                            text = agent.deptName,
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = if (isDefault) {
+                                                                MaterialTheme.colorScheme.onSecondaryContainer
+                                                            } else {
+                                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                                            }
+                                                        )
+                                                    }
+                                                }
+                                                IconButton(
+                                                    onClick = { viewModel.removeAgent(agent.empId) },
+                                                    modifier = Modifier.size(36.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.DeleteOutline,
+                                                        contentDescription = "移除代理人",
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

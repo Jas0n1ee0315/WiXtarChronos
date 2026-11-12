@@ -7,8 +7,14 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.Wearable
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
+import com.jas0n1ee.wixtar.chronos.data.AttendanceRecord
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
+import com.jas0n1ee.wixtar.chronos.data.LeaveAttachment
+import com.jas0n1ee.wixtar.chronos.data.LeaveConfirmData
+import com.jas0n1ee.wixtar.chronos.data.LeavePageInfo
+import com.jas0n1ee.wixtar.chronos.data.MakeupPunchPageInfo
 import com.jas0n1ee.wixtar.chronos.data.MidnightAlarmHelper
+import com.jas0n1ee.wixtar.chronos.data.SavedAgent
 import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
 import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
@@ -52,6 +58,13 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     val lunchDndEndTime = storage.lunchDndEndTime.stateIn(viewModelScope, SharingStarted.Eagerly, "13:00")
 
     val mockOffWorkTime = storage.mockOffWorkTime.stateIn(viewModelScope, SharingStarted.Eagerly, "17:30")
+
+    val agentEmpId = storage.agentEmpId.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val agentName = storage.agentName.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val agentDept = storage.agentDept.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    private val _isQueryingAgent = MutableStateFlow(false)
+    val isQueryingAgent: StateFlow<Boolean> = _isQueryingAgent
 
     private val _cloudInTime = MutableStateFlow<String?>(null)
     private val _cloudOutTime = MutableStateFlow<String?>(null)
@@ -99,6 +112,9 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     private val _isClockingIn = MutableStateFlow(false)
     val isClockingIn: StateFlow<Boolean> = _isClockingIn
 
+    private val _isLoggingIn = MutableStateFlow(false)
+    val isLoggingIn: StateFlow<Boolean> = _isLoggingIn
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
@@ -107,6 +123,60 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _connectedNodesCount = MutableStateFlow(0)
     val connectedNodesCount: StateFlow<Int> = _connectedNodesCount
+
+    private val _attendanceStartDate = MutableStateFlow(LocalDate.now().minusWeeks(2))
+    val attendanceStartDate: StateFlow<LocalDate> = _attendanceStartDate
+
+    private val _attendanceEndDate = MutableStateFlow(LocalDate.now())
+    val attendanceEndDate: StateFlow<LocalDate> = _attendanceEndDate
+
+    private val _attendanceSkind = MutableStateFlow("B")
+    val attendanceSkind: StateFlow<String> = _attendanceSkind
+
+    private val _attendanceRecords = MutableStateFlow<List<AttendanceRecord>>(emptyList())
+    val attendanceRecords: StateFlow<List<AttendanceRecord>> = _attendanceRecords
+
+    private val _isLoadingAttendance = MutableStateFlow(false)
+    val isLoadingAttendance: StateFlow<Boolean> = _isLoadingAttendance
+
+    private val _attendanceError = MutableStateFlow<String?>(null)
+    val attendanceError: StateFlow<String?> = _attendanceError
+
+    private val _leavePageInfo = MutableStateFlow<LeavePageInfo?>(null)
+    val leavePageInfo: StateFlow<LeavePageInfo?> = _leavePageInfo
+
+    private val _isLoadingLeaveInfo = MutableStateFlow(false)
+    val isLoadingLeaveInfo: StateFlow<Boolean> = _isLoadingLeaveInfo
+
+    private val _isSubmittingLeave = MutableStateFlow(false)
+    val isSubmittingLeave: StateFlow<Boolean> = _isSubmittingLeave
+
+    private val _isPreparingLeaveConfirm = MutableStateFlow(false)
+    val isPreparingLeaveConfirm: StateFlow<Boolean> = _isPreparingLeaveConfirm
+
+    private val _pendingLeaveConfirm = MutableStateFlow<LeaveConfirmData?>(null)
+    val pendingLeaveConfirm: StateFlow<LeaveConfirmData?> = _pendingLeaveConfirm
+
+    private val _leaveResultDialog = MutableStateFlow<Pair<Boolean, String>?>(null)
+    val leaveResultDialog: StateFlow<Pair<Boolean, String>?> = _leaveResultDialog
+
+    private val _requestedTab = MutableStateFlow<String?>(null)
+    val requestedTab: StateFlow<String?> = _requestedTab
+
+    private val _makeupInfo = MutableStateFlow<MakeupPunchPageInfo?>(null)
+    val makeupInfo: StateFlow<MakeupPunchPageInfo?> = _makeupInfo
+
+    private val _isLoadingMakeupInfo = MutableStateFlow(false)
+    val isLoadingMakeupInfo: StateFlow<Boolean> = _isLoadingMakeupInfo
+
+    private val _isSubmittingMakeup = MutableStateFlow(false)
+    val isSubmittingMakeup: StateFlow<Boolean> = _isSubmittingMakeup
+
+    private val _makeupResultDialog = MutableStateFlow<Pair<Boolean, String>?>(null)
+    val makeupResultDialog: StateFlow<Pair<Boolean, String>?> = _makeupResultDialog
+
+    val savedAgents: StateFlow<List<SavedAgent>> =
+        storage.savedAgents.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     init {
         DailyResetWorker.scheduleDailyReset(getApplication())
@@ -252,13 +322,222 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun fetchAttendanceSummary(
+        startDate: LocalDate = _attendanceStartDate.value,
+        endDate: LocalDate = _attendanceEndDate.value,
+        skind: String = _attendanceSkind.value
+    ) {
+        viewModelScope.launch {
+            _attendanceStartDate.value = startDate
+            _attendanceEndDate.value = endDate
+            _attendanceSkind.value = skind
+            _isLoadingAttendance.value = true
+            _attendanceError.value = null
+
+            repository.getAttendanceSummary(startDate, endDate, skind).onSuccess { list ->
+                _attendanceRecords.value = list
+            }.onFailure { e ->
+                _attendanceError.value = e.message ?: "查詢出勤表失敗"
+            }
+
+            _isLoadingAttendance.value = false
+        }
+    }
+
+    fun loadMakeupPunchInfo(date: LocalDate = LocalDate.now()) {
+        viewModelScope.launch {
+            _isLoadingMakeupInfo.value = true
+            repository.getMakeupPunchInfo(date).onSuccess { info ->
+                _makeupInfo.value = info
+            }.onFailure { e ->
+                _error.value = e.message ?: "載入補打卡資訊失敗"
+            }
+            _isLoadingMakeupInfo.value = false
+        }
+    }
+
+    fun submitMakeupPunch(
+        cardio: String,
+        date: LocalDate,
+        timeHHmm: String,
+        reasonCode: String,
+        note: String
+    ) {
+        viewModelScope.launch {
+            _isSubmittingMakeup.value = true
+            val currentInfo = _makeupInfo.value
+                ?: repository.getMakeupPunchInfo(date).getOrElse { e ->
+                    _makeupResultDialog.value = false to (e.message ?: "載入補打卡資訊失敗")
+                    _isSubmittingMakeup.value = false
+                    return@launch
+                }
+
+            repository.submitMakeupPunch(
+                info = currentInfo,
+                cardio = cardio,
+                date = date,
+                timeHHmm = timeHHmm,
+                reasonCode = reasonCode,
+                note = note
+            ).onSuccess { msg ->
+                _makeupResultDialog.value = true to msg
+                loadMakeupPunchInfo(date)
+            }.onFailure { e ->
+                _makeupResultDialog.value = false to (e.message ?: "補打卡送出失敗")
+            }
+            _isSubmittingMakeup.value = false
+        }
+    }
+
+    fun clearMakeupResultDialog() {
+        _makeupResultDialog.value = null
+    }
+
+    fun lookupAndSaveAgent(targetEmpId: String) {
+        viewModelScope.launch {
+            val trimmed = targetEmpId.trim().uppercase()
+            if (trimmed.isBlank()) {
+                storage.saveAgentsList(emptyList(), null)
+                _message.value = "已清除職務代理人設定"
+                return@launch
+            }
+            _isQueryingAgent.value = true
+            _error.value = null
+            repository.queryColleagueById(trimmed).onSuccess { info ->
+                val newAgent = SavedAgent(info.empId, info.name, info.deptName)
+                val currentList = savedAgents.value.toMutableList()
+                val existingIdx = currentList.indexOfFirst { it.empId == newAgent.empId }
+                if (existingIdx >= 0) {
+                    currentList[existingIdx] = newAgent
+                } else {
+                    currentList.add(newAgent)
+                }
+                val currentDefaultId = agentEmpId.value.trim()
+                val defaultAgent = if (currentDefaultId.isBlank() || currentList.size == 1) {
+                    newAgent
+                } else {
+                    currentList.find { it.empId == currentDefaultId } ?: newAgent
+                }
+                storage.saveAgentsList(currentList, defaultAgent)
+                val deptText = if (info.deptName.isNotBlank()) "（${info.deptName}）" else ""
+                _message.value = "已新增職務代理人：${info.empId} ${info.name}$deptText"
+            }.onFailure { e ->
+                _error.value = e.message ?: "查詢職務代理人失敗"
+            }
+            _isQueryingAgent.value = false
+        }
+    }
+
+    fun setDefaultAgent(agent: SavedAgent) {
+        viewModelScope.launch {
+            storage.saveAgentInfo(agent.empId, agent.name, agent.deptName)
+            _message.value = "已將 ${agent.empId} ${agent.name} 設為預設代理人"
+        }
+    }
+
+    fun removeAgent(empIdToRemove: String) {
+        viewModelScope.launch {
+            val remaining = savedAgents.value.filterNot { it.empId == empIdToRemove }
+            val currentDefaultId = agentEmpId.value.trim()
+            val nextDefault = if (currentDefaultId == empIdToRemove) {
+                remaining.firstOrNull()
+            } else {
+                remaining.find { it.empId == currentDefaultId } ?: remaining.firstOrNull()
+            }
+            storage.saveAgentsList(remaining, nextDefault)
+            _message.value = "已移除代理人 $empIdToRemove"
+        }
+    }
+
+    fun loadLeavePageInfo() {
+        viewModelScope.launch {
+            _isLoadingLeaveInfo.value = true
+            repository.getLeavePageInfo().onSuccess { info ->
+                _leavePageInfo.value = info
+            }.onFailure { e ->
+                Log.d("MobileClockViewModel", "loadLeavePageInfo error: ${e.message}")
+            }
+            _isLoadingLeaveInfo.value = false
+        }
+    }
+
+    fun prepareLeaveConfirmation(
+        agentEmpId: String,
+        agentDisplay: String,
+        leaveCode: String,
+        leaveLabel: String,
+        startDate: LocalDate,
+        endDate: LocalDate,
+        startTimeHHmm: String,
+        endTimeHHmm: String,
+        specDate: LocalDate?,
+        overdueReason: String,
+        note: String
+    ) {
+        viewModelScope.launch {
+            _isPreparingLeaveConfirm.value = true
+            repository.prepareLeaveConfirmation(
+                pageInfo = _leavePageInfo.value,
+                agentEmpId = agentEmpId,
+                agentDisplay = agentDisplay,
+                leaveCode = leaveCode,
+                leaveLabel = leaveLabel,
+                startDate = startDate,
+                endDate = endDate,
+                startTimeHHmm = startTimeHHmm,
+                endTimeHHmm = endTimeHHmm,
+                specDate = specDate,
+                overdueReason = overdueReason,
+                note = note
+            ).onSuccess { data ->
+                _pendingLeaveConfirm.value = data
+            }.onFailure { e ->
+                _leaveResultDialog.value = Pair(false, e.message ?: "請假單檢核失敗")
+            }
+            _isPreparingLeaveConfirm.value = false
+        }
+    }
+
+    fun confirmLeaveApplication(attachments: List<LeaveAttachment>) {
+        val confirmData = _pendingLeaveConfirm.value ?: return
+        viewModelScope.launch {
+            _isSubmittingLeave.value = true
+            repository.confirmLeaveApplication(confirmData, attachments).onSuccess { msg ->
+                _pendingLeaveConfirm.value = null
+                _leaveResultDialog.value = Pair(true, msg)
+                loadLeavePageInfo()
+            }.onFailure { e ->
+                _leaveResultDialog.value = Pair(false, e.message ?: "送出請假單失敗")
+            }
+            _isSubmittingLeave.value = false
+        }
+    }
+
+    fun cancelLeaveConfirmation() {
+        _pendingLeaveConfirm.value = null
+    }
+
+    fun clearLeaveResultDialog() {
+        _leaveResultDialog.value = null
+    }
+
+    fun requestTab(tabName: String) {
+        _requestedTab.value = tabName
+    }
+
+    fun clearRequestedTab() {
+        _requestedTab.value = null
+    }
+
     fun fetchCloudData() {
         viewModelScope.launch {
             _isRefreshing.value = true
             checkHrHealth()
             clearExpiredClockDataInternal()
             val ck = storage.cookie.first().trim()
-            if (ck.isNotBlank()) {
+            val id = storage.empId.first().trim()
+            val pass = storage.password.first().trim()
+            if (ck.isNotBlank() || (id.isNotBlank() && pass.isNotBlank())) {
                 repository.getCloudClockInfo(ck).onSuccess { (cloudIn, cloudOut, _) ->
                     _cloudInTime.value = cloudIn
                     _cloudOutTime.value = cloudOut
@@ -520,6 +799,36 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun fetchCredentialsByLogin(empIdVal: String? = null, passVal: String? = null) {
+        viewModelScope.launch {
+            _isLoggingIn.value = true
+            _error.value = null
+            val id = (empIdVal ?: storage.empId.first()).trim()
+            val pass = (passVal ?: storage.password.first()).trim()
+            val result = repository.loginAndFetchCredentials(id, pass)
+            if (result.isSuccess) {
+                val (newCookie, newEnc) = result.getOrThrow()
+                if (enableWatchSync.value) {
+                    WearableSyncManager.syncSettings(
+                        context = getApplication(),
+                        empId = id,
+                        pass = pass,
+                        cookie = newCookie,
+                        enc = newEnc,
+                        gps = storage.gpsLocation.first(),
+                        notifyBefore = storage.notifyBeforeOffWork.first(),
+                        notifyOn = storage.notifyOnOffWork.first()
+                    )
+                }
+                _message.value = "已自動登入並取得 Cookie 與 enc！"
+                fetchCloudData()
+            } else {
+                _error.value = result.exceptionOrNull()?.message ?: "自動登入失敗"
+            }
+            _isLoggingIn.value = false
+        }
+    }
+
     fun doClockAction() {
         viewModelScope.launch {
             _isClockingIn.value = true
@@ -531,8 +840,8 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
             val en = storage.enc.first().trim()
             val gps = storage.gpsLocation.first().trim()
 
-            if (id.isBlank() || pass.isBlank() || ck.isBlank() || en.isBlank()) {
-                _error.value = "打卡失敗：請先至 [系統設定] 完整填寫工號、密碼、Cookie 與 enc"
+            if (id.isBlank() || pass.isBlank()) {
+                _error.value = "打卡失敗：請先至 [系統設定] 填寫工號與密碼"
                 _isClockingIn.value = false
                 return@launch
             }

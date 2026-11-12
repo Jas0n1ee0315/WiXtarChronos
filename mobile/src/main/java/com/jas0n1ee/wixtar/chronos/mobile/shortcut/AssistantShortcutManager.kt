@@ -14,23 +14,23 @@ object AssistantShortcutManager {
 
     fun pushDynamicShortcut(context: Context) {
         try {
-            // Remove legacy dynamic shortcuts if any existed
             ShortcutManagerCompat.removeAllDynamicShortcuts(context)
 
-            val intent = Intent(context, MainActivity::class.java).apply {
+            fun buildIntent(actionValue: String) = Intent(context, MainActivity::class.java).apply {
                 action = Intent.ACTION_VIEW
-                putExtra("action", "PUNCH_CARD")
+                putExtra("action", actionValue)
             }
 
-            val shortcut = ShortcutInfoCompat.Builder(context, "punch_card_shortcut")
-                .setShortLabel("打卡")
-                .setLongLabel("打卡")
+            val punchShortcut = ShortcutInfoCompat.Builder(context, "punch_card_shortcut")
+                .setShortLabel("線上打卡")
+                .setLongLabel("線上打卡")
+                .setRank(0)
                 .setIcon(IconCompat.createWithResource(context, R.drawable.ic_shortcut_cloud_clock))
-                .setIntent(intent)
+                .setIntent(buildIntent("PUNCH_CARD"))
                 .addCapabilityBinding(
                     "actions.intent.OPEN_APP_FEATURE",
                     "feature",
-                    listOf("打卡", "簽到", "簽退")
+                    listOf("線上打卡", "打卡", "簽到", "簽退")
                 )
                 .addCapabilityBinding(
                     "custom.actions.intent.PUNCH_CARD",
@@ -39,7 +39,34 @@ object AssistantShortcutManager {
                 )
                 .build()
 
-            ShortcutManagerCompat.pushDynamicShortcut(context, shortcut)
+            val makeupShortcut = ShortcutInfoCompat.Builder(context, "makeup_punch_shortcut")
+                .setShortLabel("補打卡")
+                .setLongLabel("補打卡")
+                .setRank(1)
+                .setIcon(IconCompat.createWithResource(context, R.drawable.ic_shortcut_makeup_punch))
+                .setIntent(buildIntent("MAKEUP_PUNCH"))
+                .build()
+
+            val leaveShortcut = ShortcutInfoCompat.Builder(context, "leave_shortcut")
+                .setShortLabel("請假單")
+                .setLongLabel("請假單")
+                .setRank(2)
+                .setIcon(IconCompat.createWithResource(context, R.drawable.ic_shortcut_leave))
+                .setIntent(buildIntent("LEAVE"))
+                .build()
+
+            val attendanceShortcut = ShortcutInfoCompat.Builder(context, "attendance_shortcut")
+                .setShortLabel("出勤表")
+                .setLongLabel("出勤表")
+                .setRank(3)
+                .setIcon(IconCompat.createWithResource(context, R.drawable.ic_shortcut_attendance))
+                .setIntent(buildIntent("ATTENDANCE"))
+                .build()
+
+            ShortcutManagerCompat.setDynamicShortcuts(
+                context,
+                listOf(punchShortcut, makeupShortcut, leaveShortcut, attendanceShortcut)
+            )
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -57,8 +84,8 @@ object AssistantShortcutManager {
                 }
 
                 val pinShortcutInfo = ShortcutInfoCompat.Builder(context, "punch_card_shortcut")
-                    .setShortLabel("打卡")
-                    .setLongLabel("打卡")
+                    .setShortLabel("線上打卡")
+                    .setLongLabel("線上打卡")
                     .setIcon(IconCompat.createWithResource(context, R.drawable.ic_shortcut_cloud_clock))
                     .setIntent(intent)
                     .addCapabilityBinding(

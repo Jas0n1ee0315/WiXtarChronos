@@ -48,6 +48,11 @@ class AppStorage(private val context: Context) {
 
         val MOCK_OFF_WORK_TIME = stringPreferencesKey("mock_off_work_time")
         val SELECTED_APP_ICON_INDEX = intPreferencesKey("selected_app_icon_index")
+
+        val AGENT_EMP_ID = stringPreferencesKey("agent_emp_id")
+        val AGENT_NAME = stringPreferencesKey("agent_name")
+        val AGENT_DEPT = stringPreferencesKey("agent_dept")
+        val AGENTS_JSON = stringPreferencesKey("agents_json")
     }
 
     val empId: Flow<String> = context.dataStore.data.map { it[EMP_ID] ?: "" }
@@ -71,6 +76,43 @@ class AppStorage(private val context: Context) {
 
     val mockOffWorkTime: Flow<String> = context.dataStore.data.map { it[MOCK_OFF_WORK_TIME] ?: "17:30" }
     val selectedAppIconIndex: Flow<Int> = context.dataStore.data.map { it[SELECTED_APP_ICON_INDEX] ?: 0 }
+
+    val agentEmpId: Flow<String> = context.dataStore.data.map { it[AGENT_EMP_ID] ?: "" }
+    val agentName: Flow<String> = context.dataStore.data.map { it[AGENT_NAME] ?: "" }
+    val agentDept: Flow<String> = context.dataStore.data.map { it[AGENT_DEPT] ?: "" }
+    val savedAgents: Flow<List<SavedAgent>> = context.dataStore.data.map { prefs ->
+        val raw = prefs[AGENTS_JSON].orEmpty()
+        if (raw.isNotBlank()) {
+            try {
+                val arr = org.json.JSONArray(raw)
+                (0 until arr.length()).mapNotNull { idx ->
+                    val obj = arr.optJSONObject(idx) ?: return@mapNotNull null
+                    val id = obj.optString("empId").trim()
+                    if (id.isBlank()) null
+                    else SavedAgent(
+                        empId = id,
+                        name = obj.optString("name").trim(),
+                        deptName = obj.optString("deptName").trim()
+                    )
+                }
+            } catch (_: Exception) {
+                emptyList()
+            }
+        } else {
+            val legacyId = prefs[AGENT_EMP_ID]?.trim().orEmpty()
+            if (legacyId.isNotBlank()) {
+                listOf(
+                    SavedAgent(
+                        empId = legacyId,
+                        name = prefs[AGENT_NAME]?.trim().orEmpty(),
+                        deptName = prefs[AGENT_DEPT]?.trim().orEmpty()
+                    )
+                )
+            } else {
+                emptyList()
+            }
+        }
+    }
 
     val lastClockDate: Flow<String?> = context.dataStore.data.map { it[LAST_CLOCK_DATE] }
 
@@ -129,6 +171,40 @@ class AppStorage(private val context: Context) {
             prefs[LUNCH_DND_START_TIME] = lunchDndStartTime
             prefs[LUNCH_DND_END_TIME] = lunchDndEndTime
             prefs[MOCK_OFF_WORK_TIME] = mockOffWorkTime
+        }
+    }
+
+    suspend fun saveCredentials(cookie: String, enc: String) {
+        context.dataStore.edit { prefs ->
+            prefs[COOKIE] = cookie
+            prefs[ENC] = enc
+        }
+    }
+
+    suspend fun saveAgentInfo(empId: String, name: String, dept: String) {
+        context.dataStore.edit { prefs ->
+            prefs[AGENT_EMP_ID] = empId
+            prefs[AGENT_NAME] = name
+            prefs[AGENT_DEPT] = dept
+        }
+    }
+
+    suspend fun saveAgentsList(agents: List<SavedAgent>, defaultAgent: SavedAgent?) {
+        val arr = org.json.JSONArray()
+        agents.forEach { agent ->
+            arr.put(
+                org.json.JSONObject().apply {
+                    put("empId", agent.empId)
+                    put("name", agent.name)
+                    put("deptName", agent.deptName)
+                }
+            )
+        }
+        context.dataStore.edit { prefs ->
+            prefs[AGENTS_JSON] = arr.toString()
+            prefs[AGENT_EMP_ID] = defaultAgent?.empId ?: ""
+            prefs[AGENT_NAME] = defaultAgent?.name ?: ""
+            prefs[AGENT_DEPT] = defaultAgent?.deptName ?: ""
         }
     }
 

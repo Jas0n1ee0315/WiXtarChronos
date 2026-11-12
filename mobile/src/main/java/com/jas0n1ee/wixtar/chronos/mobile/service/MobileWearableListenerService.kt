@@ -79,7 +79,9 @@ class MobileWearableListenerService : WearableListenerService() {
             scope.launch {
                 if (action == "FETCH_CLOUD") {
                     val cookie = storage.cookie.first()
-                    if (cookie.isNotBlank()) {
+                    val empId = storage.empId.first()
+                    val pass = storage.password.first()
+                    if (cookie.isNotBlank() || (empId.isNotBlank() && pass.isNotBlank())) {
                         repository.getCloudClockInfo(cookie).onSuccess { (cloudIn, cloudOut, _) ->
                             cloudIn?.let { storage.saveClockIn(it) }
                             cloudOut?.let { storage.saveClockOut(it) }

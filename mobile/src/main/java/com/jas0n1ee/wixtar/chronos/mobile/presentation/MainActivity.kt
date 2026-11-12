@@ -56,10 +56,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleActionIntent(intent: Intent?) {
-        val actionExtra = intent?.getStringExtra("action")
-        if (actionExtra == "PUNCH_CARD") {
-            intent.removeExtra("action")
-            viewModel.doClockAction()
+        val actionExtra = intent?.getStringExtra("action") ?: return
+        intent.removeExtra("action")
+        when (actionExtra) {
+            "PUNCH_CARD" -> {
+                viewModel.requestTab("PUNCH_CARD")
+                viewModel.doClockAction()
+            }
+            "MAKEUP_PUNCH", "LEAVE", "ATTENDANCE" -> {
+                viewModel.requestTab(actionExtra)
+            }
         }
     }
 }

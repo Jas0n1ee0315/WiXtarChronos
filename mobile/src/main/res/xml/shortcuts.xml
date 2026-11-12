@@ -45,9 +45,57 @@
         <capability-binding android:key="actions.intent.OPEN_APP_FEATURE">
             <parameter-binding
                 android:key="feature"
-                android:value="打卡" />
+                android:value="線上打卡" />
         </capability-binding>
         <capability-binding android:key="custom.actions.intent.PUNCH_CARD" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="makeup_punch_shortcut"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_makeup_punch"
+        android:shortcutShortLabel="@string/shortcut_makeup_punch_label"
+        android:shortcutLongLabel="@string/shortcut_makeup_punch_long_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.jas0n1ee.wixtar.chronos"
+            android:targetClass="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity">
+            <extra
+                android:name="action"
+                android:value="MAKEUP_PUNCH" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="leave_shortcut"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_leave"
+        android:shortcutShortLabel="@string/shortcut_leave_label"
+        android:shortcutLongLabel="@string/shortcut_leave_long_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.jas0n1ee.wixtar.chronos"
+            android:targetClass="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity">
+            <extra
+                android:name="action"
+                android:value="LEAVE" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="attendance_shortcut"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_attendance"
+        android:shortcutShortLabel="@string/shortcut_attendance_label"
+        android:shortcutLongLabel="@string/shortcut_attendance_long_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.jas0n1ee.wixtar.chronos"
+            android:targetClass="com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity">
+            <extra
+                android:name="action"
+                android:value="ATTENDANCE" />
+        </intent>
     </shortcut>
 
 </shortcuts>

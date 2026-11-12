@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">WiXtar 打卡</string>
-    <string name="shortcut_punch_card_label">打卡</string>
-    <string name="shortcut_punch_card_long_label">打卡</string>
+    <string name="shortcut_punch_card_label">線上打卡</string>
+    <string name="shortcut_punch_card_long_label">線上打卡</string>
+    <string name="shortcut_makeup_punch_label">補打卡</string>
+    <string name="shortcut_makeup_punch_long_label">補打卡</string>
+    <string name="shortcut_leave_label">請假單</string>
+    <string name="shortcut_leave_long_label">請假單</string>
+    <string name="shortcut_attendance_label">出勤表</string>
+    <string name="shortcut_attendance_long_label">出勤表</string>
 </resources>

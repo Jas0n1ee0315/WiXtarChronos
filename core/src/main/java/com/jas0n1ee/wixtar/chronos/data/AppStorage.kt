@@ -49,6 +49,10 @@ class AppStorage(private val context: Context) {
         val MOCK_OFF_WORK_TIME = stringPreferencesKey("mock_off_work_time")
         val SELECTED_APP_ICON_INDEX = intPreferencesKey("selected_app_icon_index")
 
+        val TRACKER_ICON_MODE = stringPreferencesKey("tracker_icon_mode")
+        val TRACKER_CUSTOM_EMOJI = stringPreferencesKey("tracker_custom_emoji")
+        val TRACKER_FLIP_HORIZONTAL = booleanPreferencesKey("tracker_flip_horizontal")
+
         val AGENT_EMP_ID = stringPreferencesKey("agent_emp_id")
         val AGENT_NAME = stringPreferencesKey("agent_name")
         val AGENT_DEPT = stringPreferencesKey("agent_dept")
@@ -76,6 +80,10 @@ class AppStorage(private val context: Context) {
 
     val mockOffWorkTime: Flow<String> = context.dataStore.data.map { it[MOCK_OFF_WORK_TIME] ?: "17:30" }
     val selectedAppIconIndex: Flow<Int> = context.dataStore.data.map { it[SELECTED_APP_ICON_INDEX] ?: 0 }
+
+    val trackerIconMode: Flow<String> = context.dataStore.data.map { it[TRACKER_ICON_MODE] ?: "sprint" }
+    val trackerCustomEmoji: Flow<String> = context.dataStore.data.map { it[TRACKER_CUSTOM_EMOJI] ?: "🚀" }
+    val trackerFlipHorizontal: Flow<Boolean> = context.dataStore.data.map { it[TRACKER_FLIP_HORIZONTAL] ?: true }
 
     val agentEmpId: Flow<String> = context.dataStore.data.map { it[AGENT_EMP_ID] ?: "" }
     val agentName: Flow<String> = context.dataStore.data.map { it[AGENT_NAME] ?: "" }
@@ -171,6 +179,14 @@ class AppStorage(private val context: Context) {
             prefs[LUNCH_DND_START_TIME] = lunchDndStartTime
             prefs[LUNCH_DND_END_TIME] = lunchDndEndTime
             prefs[MOCK_OFF_WORK_TIME] = mockOffWorkTime
+        }
+    }
+
+    suspend fun saveTrackerSettings(mode: String, customEmoji: String, flipHorizontal: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[TRACKER_ICON_MODE] = mode
+            prefs[TRACKER_CUSTOM_EMOJI] = customEmoji
+            prefs[TRACKER_FLIP_HORIZONTAL] = flipHorizontal
         }
     }
 

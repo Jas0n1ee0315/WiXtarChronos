@@ -11,12 +11,18 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
@@ -146,6 +152,14 @@ fun MobileSettingsScreen(
     var tempLunchDndEndTime by remember(lunchDndEndTime) { mutableStateOf(lunchDndEndTime) }
 
     var tempMockOffWorkTime by remember(mockOffWorkTime) { mutableStateOf(mockOffWorkTime) }
+
+    val trackerIconMode by viewModel.trackerIconMode.collectAsState()
+    val trackerCustomEmoji by viewModel.trackerCustomEmoji.collectAsState()
+    val trackerFlipHorizontal by viewModel.trackerFlipHorizontal.collectAsState()
+
+    var tempTrackerIconMode by remember(trackerIconMode) { mutableStateOf(trackerIconMode) }
+    var tempTrackerCustomEmoji by remember(trackerCustomEmoji) { mutableStateOf(trackerCustomEmoji) }
+    var tempTrackerFlipHorizontal by remember(trackerFlipHorizontal) { mutableStateOf(trackerFlipHorizontal) }
 
     var isPasswordVisible by remember { mutableStateOf(false) }
     var advanceDropdownExpanded by remember { mutableStateOf(false) }
@@ -867,6 +881,139 @@ fun MobileSettingsScreen(
                                         autoSave(useLiveUpdatesVal = checked)
                                     }
                                 )
+                            }
+
+                            if (tempUseLiveUpdates && tempNotifyBefore) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text(
+                                        text = "進度條追蹤器圖示 (Tracker Icon)",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+
+                                    val options = listOf(
+                                        Triple("sprint", "🏃 拔腿狂奔", true),
+                                        Triple("scooter", "🛵 油門催到底", true),
+                                        Triple("party", "🥳 狂歡慶祝", false),
+                                        Triple("cheers", "🍺 下班乾杯", false),
+                                        Triple("sofa", "🛋️ 回家躺平", false),
+                                        Triple("random", "🎲 隨機驚喜", true),
+                                        Triple("custom", "✏️ 自訂 Emoji", tempTrackerFlipHorizontal)
+                                    )
+
+                                    LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        items(options) { (modeKey, label, defaultFlip) ->
+                                            val selected = tempTrackerIconMode == modeKey
+                                            FilterChip(
+                                                selected = selected,
+                                                onClick = {
+                                                    tempTrackerIconMode = modeKey
+                                                    if (modeKey != "custom") {
+                                                        tempTrackerFlipHorizontal = defaultFlip
+                                                    }
+                                                    viewModel.saveTrackerSettings(modeKey, tempTrackerCustomEmoji, tempTrackerFlipHorizontal)
+                                                },
+                                                label = { Text(label, style = MaterialTheme.typography.bodySmall) }
+                                            )
+                                        }
+                                    }
+
+                                    if (tempTrackerIconMode == "custom") {
+                                        OutlinedTextField(
+                                            value = tempTrackerCustomEmoji,
+                                            onValueChange = { newVal ->
+                                                tempTrackerCustomEmoji = newVal
+                                                viewModel.saveTrackerSettings(tempTrackerIconMode, newVal, tempTrackerFlipHorizontal)
+                                            },
+                                            label = { Text("輸入自訂 Emoji (例如 🚀, 🏎️, 🐈)") },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("圖示水平翻轉", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                            Text("將朝左之 Emoji 鏡像為朝右（奔向終點方向）", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        Switch(
+                                            checked = tempTrackerFlipHorizontal,
+                                            onCheckedChange = { checked ->
+                                                tempTrackerFlipHorizontal = checked
+                                                viewModel.saveTrackerSettings(tempTrackerIconMode, tempTrackerCustomEmoji, checked)
+                                            }
+                                        )
+                                    }
+
+                                    val previewEmoji = when (tempTrackerIconMode) {
+                                        "sprint" -> "🏃"
+                                        "scooter" -> "🛵"
+                                        "party" -> "🥳"
+                                        "cheers" -> "🍺"
+                                        "sofa" -> "🛋️"
+                                        "random" -> "🎲"
+                                        "custom" -> tempTrackerCustomEmoji.ifBlank { "🚀" }
+                                        else -> "🏃"
+                                    }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(MaterialTheme.colorScheme.surface)
+                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text("效果預覽:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            text = previewEmoji,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            modifier = Modifier.graphicsLayer {
+                                                if (tempTrackerFlipHorizontal && tempTrackerIconMode != "random") {
+                                                    scaleX = -1f
+                                                }
+                                            }
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(6.dp)
+                                                .clip(RoundedCornerShape(3.dp))
+                                        ) {
+                                            Row(modifier = Modifier.fillMaxSize()) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(0.4f)
+                                                        .fillMaxHeight()
+                                                        .background(Color(0xFF757575))
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(0.6f)
+                                                        .fillMaxHeight()
+                                                        .background(Color(0xFFE53935))
+                                                )
+                                            }
+                                        }
+                                        Text("🏁 下班", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
                             }
 
                             HorizontalDivider()

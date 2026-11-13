@@ -8,7 +8,10 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
@@ -23,8 +26,13 @@ import com.jas0n1ee.wixtar.chronos.mobile.presentation.MainActivity
 import com.jas0n1ee.wixtar.chronos.mobile.receiver.LunchDndReceiver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -42,6 +50,8 @@ class MobileNotificationHelper(private val context: Context) {
         const val LUNCH_DND_END_NOTIFICATION_ID = 5552
         const val FORGET_CLOCK_OUT_NOTIFICATION_ID = 7777
         const val LIVE_UPDATE_NOTIFICATION_ID = 8888
+
+        private var tickerJob: Job? = null
     }
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -356,12 +366,125 @@ class MobileNotificationHelper(private val context: Context) {
         }
     }
 
+    fun resolveTrackerEmoji(mode: String, customEmoji: String): String {
+        return when (mode) {
+            "sprint" -> "🏃"
+            "scooter" -> "🛵"
+            "party" -> "🥳"
+            "cheers" -> "🍺"
+            "sofa" -> "🛋️"
+            "random" -> listOf("🏃", "🛵", "🥳", "🍺", "🛋️", "🚀", "🏎️", "🎉", "💨", "🐈").random()
+            "custom" -> customEmoji.ifBlank { "🚀" }
+            else -> "🏃"
+        }
+    }
+
+    fun createEmojiTrackerIcon(
+        emoji: String,
+        flipHorizontally: Boolean = false
+    ): Icon {
+        val size = 96
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        if (flipHorizontally) {
+            canvas.save()
+            canvas.scale(-1f, 1f, size / 2f, size / 2f)
+        }
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = size * 0.72f
+            textAlign = Paint.Align.CENTER
+        }
+
+        val fontMetrics = paint.fontMetrics
+        val yPos = (size / 2f) - (fontMetrics.ascent + fontMetrics.descent) / 2f
+        canvas.drawText(emoji, size / 2f, yPos, paint)
+
+        if (flipHorizontally) {
+            canvas.restore()
+        }
+
+        return Icon.createWithBitmap(bitmap)
+    }
+
+    fun startLiveUpdateTicker(
+        offWorkTimeMillis: Long,
+        advanceMinutes: Int
+    ) {
+        stopLiveUpdateTicker()
+        tickerJob = CoroutineScope(Dispatchers.Default).launch {
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+            val wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WiXtar:LiveUpdateTicker")
+            val totalSpanMillis = (advanceMinutes * 60 * 1000L).coerceAtLeast(1000L)
+            try {
+                wakeLock?.acquire(totalSpanMillis + 60_000L)
+            } catch (e: Exception) {
+                Log.e("MobileNotificationHelper", "Could not acquire WakeLock", e)
+            }
+
+            val storage = AppStorage(context)
+            val mode = storage.trackerIconMode.first()
+            val customEmoji = storage.trackerCustomEmoji.first()
+            val flip = storage.trackerFlipHorizontal.first()
+            val emoji = resolveTrackerEmoji(mode, customEmoji)
+
+            try {
+                postLiveUpdateNotification(
+                    offWorkTimeMillis = offWorkTimeMillis,
+                    advanceMinutes = advanceMinutes,
+                    showProgressBar = true,
+                    trackerEmoji = emoji,
+                    flipTracker = flip
+                )
+
+                while (isActive) {
+                    delay(30_000L) // 30 seconds interval
+                    val now = System.currentTimeMillis()
+                    if (now >= offWorkTimeMillis) {
+                        Log.d("MobileNotificationHelper", "LiveUpdateTicker reached offWorkTime, transforming notification")
+                        withContext(Dispatchers.Main) {
+                            transformLiveUpdateToOffWork()
+                        }
+                        break
+                    }
+
+                    Log.d("MobileNotificationHelper", "LiveUpdateTicker refreshing progress (30s tick)")
+                    postLiveUpdateNotification(
+                        offWorkTimeMillis = offWorkTimeMillis,
+                        advanceMinutes = advanceMinutes,
+                        showProgressBar = true,
+                        trackerEmoji = emoji,
+                        flipTracker = flip
+                    )
+                }
+            } catch (e: Exception) {
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e("MobileNotificationHelper", "Error in LiveUpdateTicker", e)
+                }
+            } finally {
+                try {
+                    if (wakeLock?.isHeld == true) {
+                        wakeLock.release()
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    fun stopLiveUpdateTicker() {
+        tickerJob?.cancel()
+        tickerJob = null
+    }
+
     fun postLiveUpdateNotification(
         offWorkTimeMillis: Long,
         title: String = "下班時間倒數",
         text: String = "再過不久就可以下班囉",
         advanceMinutes: Int = 10,
-        showProgressBar: Boolean = true
+        showProgressBar: Boolean = true,
+        trackerEmoji: String? = null,
+        flipTracker: Boolean? = null
     ) {
         try {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -377,20 +500,29 @@ class MobileNotificationHelper(private val context: Context) {
 
             if (showProgressBar && Build.VERSION.SDK_INT >= 36) {
                 try {
+                    val storage = AppStorage(context)
+                    val mode = runBlocking { storage.trackerIconMode.first() }
+                    val custom = runBlocking { storage.trackerCustomEmoji.first() }
+                    val defaultFlip = runBlocking { storage.trackerFlipHorizontal.first() }
+
+                    val finalEmoji = trackerEmoji ?: resolveTrackerEmoji(mode, custom)
+                    val finalFlip = flipTracker ?: defaultFlip
+                    val trackerIcon = createEmojiTrackerIcon(finalEmoji, finalFlip)
+
+                    val elapsedLength = progress.coerceIn(0, 100)
+                    val remainingLength = (100 - progress).coerceIn(0, 100)
+                    val segments = mutableListOf<Notification.ProgressStyle.Segment>()
+                    if (elapsedLength > 0) {
+                        segments.add(Notification.ProgressStyle.Segment(elapsedLength).setColor(0xFF757575.toInt())) // 已經過：灰色
+                    }
+                    if (remainingLength > 0) {
+                        segments.add(Notification.ProgressStyle.Segment(remainingLength).setColor(0xFFE53935.toInt())) // 剩餘時間：紅色
+                    }
+
                     val progressStyle = Notification.ProgressStyle()
                         .setProgress(progress)
-                        .setProgressSegments(
-                            listOf(
-                                Notification.ProgressStyle.Segment(50).setColor(0xFF4285F4.toInt()),
-                                Notification.ProgressStyle.Segment(50).setColor(0xFF34A853.toInt())
-                            )
-                        )
-                        .setProgressPoints(
-                            listOf(
-                                Notification.ProgressStyle.Point(50).setColor(Color.WHITE)
-                            )
-                        )
-                        .setProgressTrackerIcon(Icon.createWithResource(context, R.drawable.ic_cloud_clock))
+                        .setProgressSegments(segments)
+                        .setProgressTrackerIcon(trackerIcon)
 
                     val nativeBuilder = Notification.Builder(context, CHANNEL_ID)
                         .setSmallIcon(R.drawable.ic_cloud_clock)
@@ -406,7 +538,7 @@ class MobileNotificationHelper(private val context: Context) {
                         .setRequestPromotedOngoing(true)
 
                     manager.notify(LIVE_UPDATE_NOTIFICATION_ID, nativeBuilder.build())
-                    Log.d("MobileNotificationHelper", "Android 16 ProgressStyle Live Update notification posted (progress=$progress)")
+                    Log.d("MobileNotificationHelper", "Android 16 ProgressStyle Live Update notification posted (progress=$progress, emoji=$finalEmoji, flip=$finalFlip)")
                     return
                 } catch (e: Throwable) {
                     Log.e("MobileNotificationHelper", "Error applying Notification.ProgressStyle, falling back to NotificationCompat", e)
@@ -507,6 +639,7 @@ class MobileNotificationHelper(private val context: Context) {
 
     fun transformLiveUpdateToOffWork() {
         try {
+            stopLiveUpdateTicker()
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val intent = Intent(context, MainActivity::class.java)
             val pendingIntent = PendingIntent.getActivity(
@@ -544,6 +677,7 @@ class MobileNotificationHelper(private val context: Context) {
     }
 
     fun cancelLiveUpdateNotification() {
+        stopLiveUpdateTicker()
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.cancel(LIVE_UPDATE_NOTIFICATION_ID)
     }
@@ -708,11 +842,15 @@ class NotificationReceiver : BroadcastReceiver() {
             } else if (requestCode == MobileNotificationHelper.ADVANCE_NOTIFICATION_ID && useLiveUpdates && offWorkTimeMillis > 0) {
                 val advanceMinutes = intent.getIntExtra("advanceMinutes", 10)
                 val showProgressBar = intent.getBooleanExtra("showProgressBar", true)
-                helper.postLiveUpdateNotification(
-                    offWorkTimeMillis = offWorkTimeMillis,
-                    advanceMinutes = advanceMinutes,
-                    showProgressBar = showProgressBar
-                )
+                if (showProgressBar) {
+                    helper.startLiveUpdateTicker(offWorkTimeMillis, advanceMinutes)
+                } else {
+                    helper.postLiveUpdateNotification(
+                        offWorkTimeMillis = offWorkTimeMillis,
+                        advanceMinutes = advanceMinutes,
+                        showProgressBar = false
+                    )
+                }
             } else if (requestCode == MobileNotificationHelper.OFF_WORK_NOTIFICATION_ID) {
                 val pendingResult = try { goAsync() } catch (_: Exception) { null }
                 CoroutineScope(Dispatchers.IO).launch {

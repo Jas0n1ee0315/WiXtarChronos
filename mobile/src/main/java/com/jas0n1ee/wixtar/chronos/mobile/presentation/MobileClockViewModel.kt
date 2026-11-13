@@ -59,6 +59,10 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
 
     val mockOffWorkTime = storage.mockOffWorkTime.stateIn(viewModelScope, SharingStarted.Eagerly, "17:30")
 
+    val trackerIconMode = storage.trackerIconMode.stateIn(viewModelScope, SharingStarted.Eagerly, "sprint")
+    val trackerCustomEmoji = storage.trackerCustomEmoji.stateIn(viewModelScope, SharingStarted.Eagerly, "🚀")
+    val trackerFlipHorizontal = storage.trackerFlipHorizontal.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
     val agentEmpId = storage.agentEmpId.stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val agentName = storage.agentName.stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val agentDept = storage.agentDept.stateIn(viewModelScope, SharingStarted.Eagerly, "")
@@ -241,13 +245,20 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     notifyOn = notifyOnOffWork.value
                 )
 
-                notificationHelper.postLiveUpdateNotification(
-                    offWorkTimeMillis = targetMillis,
-                    title = "下班時間倒數",
-                    text = "再過不久就可以下班囉",
-                    advanceMinutes = notifyAdvanceMinutes.value,
-                    showProgressBar = notifyBeforeOffWork.value
-                )
+                if (notifyBeforeOffWork.value) {
+                    notificationHelper.startLiveUpdateTicker(
+                        offWorkTimeMillis = targetMillis,
+                        advanceMinutes = notifyAdvanceMinutes.value
+                    )
+                } else {
+                    notificationHelper.postLiveUpdateNotification(
+                        offWorkTimeMillis = targetMillis,
+                        title = "下班時間倒數",
+                        text = "再過不久就可以下班囉",
+                        advanceMinutes = notifyAdvanceMinutes.value,
+                        showProgressBar = false
+                    )
+                }
                 _message.value = "已發送測試 Live Update 通知 (模擬下班時間: $mockTimeStr)"
             } catch (e: Exception) {
                 _error.value = "發送測試通知失敗: ${e.message}"
@@ -660,6 +671,12 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     notifyOn = notifyOnVal
                 )
             }
+        }
+    }
+
+    fun saveTrackerSettings(mode: String, customEmoji: String, flipHorizontal: Boolean) {
+        viewModelScope.launch {
+            storage.saveTrackerSettings(mode, customEmoji, flipHorizontal)
         }
     }
 

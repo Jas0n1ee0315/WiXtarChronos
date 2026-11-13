@@ -45,9 +45,16 @@ class WiXtarTileService : TileService() {
                 val actionTypeStr = if (isClockingInAction) "上班卡" else "下班卡"
                 if (isClockingInAction) {
                     storage.saveClockIn(time)
-                    notificationHelper.scheduleReminders(time)
+                    val notifyBefore = storage.notifyBeforeOffWork.first()
+                    val notifyOn = storage.notifyOnOffWork.first()
+                    val advanceMinutes = storage.notifyAdvanceMinutes.first()
+                    val useLive = storage.useLiveUpdates.first()
+                    if (notifyBefore || notifyOn) {
+                        notificationHelper.scheduleReminders(time, advanceMinutes, useLive)
+                    }
                 } else {
                     storage.saveClockOut(time)
+                    notificationHelper.cancelReminders()
                 }
 
                 val enableWatchSync = storage.enableWatchSync.first()

@@ -10,6 +10,7 @@ import com.google.android.gms.wearable.WearableListenerService
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
+import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -47,6 +48,18 @@ class MobileWearableListenerService : WearableListenerService() {
                 scope.launch {
                     if (clockIn.isNotBlank() || clockOut.isNotBlank()) {
                         storage.saveClockDataWithSources(clockIn, "來自手錶", clockOut, "來自手錶")
+                        val notificationHelper = MobileNotificationHelper(applicationContext)
+                        if (clockIn.isNotBlank() && clockOut.isBlank()) {
+                            val notifyBefore = storage.notifyBeforeOffWork.first()
+                            val notifyOn = storage.notifyOnOffWork.first()
+                            val advanceMinutes = storage.notifyAdvanceMinutes.first()
+                            val useLive = storage.useLiveUpdates.first()
+                            if (notifyBefore || notifyOn) {
+                                notificationHelper.scheduleReminders(clockIn, advanceMinutes, useLive)
+                            }
+                        } else if (clockOut.isNotBlank()) {
+                            notificationHelper.cancelReminders()
+                        }
                         Log.d("MobileWearableListener", "Received & saved updated clock status from Wear OS Watch: in=$clockIn, out=$clockOut")
                     }
                 }
@@ -103,10 +116,19 @@ class MobileWearableListenerService : WearableListenerService() {
                     val result = repository.clockIn(empId, pass, cookie, enc, gps)
                     if (result.isSuccess) {
                         val time = result.getOrNull() ?: ""
+                        val notificationHelper = MobileNotificationHelper(applicationContext)
                         if (isClockingIn) {
                             storage.saveClockIn(time)
+                            val notifyBefore = storage.notifyBeforeOffWork.first()
+                            val notifyOn = storage.notifyOnOffWork.first()
+                            val advanceMinutes = storage.notifyAdvanceMinutes.first()
+                            val useLive = storage.useLiveUpdates.first()
+                            if (notifyBefore || notifyOn) {
+                                notificationHelper.scheduleReminders(time, advanceMinutes, useLive)
+                            }
                         } else {
                             storage.saveClockOut(time)
+                            notificationHelper.cancelReminders()
                         }
                         val todayStr = LocalDate.now().toString()
                         val updatedIn = if (isClockingIn) time else currentIn

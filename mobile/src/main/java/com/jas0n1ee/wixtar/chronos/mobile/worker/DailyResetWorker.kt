@@ -49,7 +49,7 @@ class DailyResetWorker(
 
             val notificationHelper = MobileNotificationHelper(appContext)
             if (cleared) {
-                notificationHelper.cancelLiveUpdateNotification()
+                notificationHelper.cancelReminders()
                 if (storage.enableWatchSync.first()) {
                     WearableSyncManager.syncClockStatus(appContext, "", "", LocalDate.now().toString())
                 }

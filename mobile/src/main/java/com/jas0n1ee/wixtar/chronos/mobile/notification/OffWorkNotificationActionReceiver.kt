@@ -39,6 +39,7 @@ class OffWorkNotificationActionReceiver : BroadcastReceiver() {
                     if (result.isSuccess) {
                         val time = result.getOrNull() ?: ""
                         storage.saveClockOut(time)
+                        notificationHelper.cancelReminders()
                         notificationHelper.sendClockOutSuccessNotification(time)
                         Log.d("OffWorkActionReceiver", "Punched off-work card successfully: $time")
                     } else {

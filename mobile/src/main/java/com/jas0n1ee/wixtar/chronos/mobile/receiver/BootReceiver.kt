@@ -34,13 +34,19 @@ class BootReceiver : BroadcastReceiver() {
                     val notificationHelper = MobileNotificationHelper(context)
 
                     val clockIn = storage.clockInTime.first()
+                    val clockOut = storage.clockOutTime.first()
                     val notifyBefore = storage.notifyBeforeOffWork.first()
                     val notifyOn = storage.notifyOnOffWork.first()
                     val advanceMinutes = storage.notifyAdvanceMinutes.first()
                     val useLiveUpdates = storage.useLiveUpdates.first()
 
-                    if ((notifyBefore || notifyOn) && !clockIn.isNullOrBlank()) {
+                    if ((notifyBefore || notifyOn) && !clockIn.isNullOrBlank() && clockOut.isNullOrBlank()) {
                         notificationHelper.scheduleReminders(clockIn, advanceMinutes, useLiveUpdates)
+                    }
+
+                    if (storage.forgetClockOutNotifyEnabled.first()) {
+                        val forgetTime = storage.forgetClockOutNotifyTime.first()
+                        notificationHelper.scheduleForgetClockOutReminders(forgetTime)
                     }
                 } catch (e: Exception) {
                     Log.e("BootReceiver", "Error re-scheduling after $action", e)

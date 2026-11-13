@@ -1,12 +1,15 @@
 package com.jas0n1ee.wixtar.chronos.mobile.notification
 
 import android.app.AlarmManager
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
@@ -133,7 +136,9 @@ class MobileNotificationHelper(private val context: Context) {
         title: String,
         message: String,
         useLiveUpdates: Boolean = false,
-        offWorkTimeMillis: Long = 0L
+        offWorkTimeMillis: Long = 0L,
+        advanceMinutes: Int = 10,
+        showProgressBar: Boolean = false
     ) {
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             putExtra("title", title)
@@ -141,6 +146,8 @@ class MobileNotificationHelper(private val context: Context) {
             putExtra("requestCode", requestCode)
             putExtra("useLiveUpdates", useLiveUpdates)
             putExtra("offWorkTimeMillis", offWorkTimeMillis)
+            putExtra("advanceMinutes", advanceMinutes)
+            putExtra("showProgressBar", showProgressBar)
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -152,8 +159,7 @@ class MobileNotificationHelper(private val context: Context) {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 if (alarmManager.canScheduleExactAlarms()) {
-                    val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerAtMillis, pendingIntent)
-                    alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
                 } else {
                     alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
                 }
@@ -166,19 +172,59 @@ class MobileNotificationHelper(private val context: Context) {
         }
     }
 
+    fun cancelReminders() {
+        cancelLiveUpdateNotification()
+        try {
+            val advanceIntent = Intent(context, NotificationReceiver::class.java)
+            val advancePending = PendingIntent.getBroadcast(
+                context, ADVANCE_NOTIFICATION_ID, advanceIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE
+            )
+            advancePending?.let { alarmManager.cancel(it) }
+
+            val offWorkIntent = Intent(context, NotificationReceiver::class.java)
+            val offWorkPending = PendingIntent.getBroadcast(
+                context, OFF_WORK_NOTIFICATION_ID, offWorkIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE
+            )
+            offWorkPending?.let { alarmManager.cancel(it) }
+            Log.d("MobileNotificationHelper", "Cancelled off-work and advance alarms")
+        } catch (e: Exception) {
+            Log.e("MobileNotificationHelper", "Error cancelling reminders", e)
+        }
+    }
+
+    fun cancelForgetClockOutReminder() {
+        try {
+            val intent = Intent(context, NotificationReceiver::class.java)
+            val pending = PendingIntent.getBroadcast(
+                context, FORGET_CLOCK_OUT_NOTIFICATION_ID, intent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE
+            )
+            pending?.let { alarmManager.cancel(it) }
+            Log.d("MobileNotificationHelper", "Cancelled forget clock-out alarm")
+        } catch (e: Exception) {
+            Log.e("MobileNotificationHelper", "Error cancelling forget clock out reminder", e)
+        }
+    }
+
     fun scheduleReminders(
         clockInTimeStr: String,
         advanceMinutes: Int = 10,
         useLiveUpdates: Boolean = false,
-        mockOffWorkTimeStr: String = ""
+        mockOffWorkTimeStr: String = "",
+        notifyBefore: Boolean = true,
+        notifyOn: Boolean = true
     ) {
         try {
             val formatter = DateTimeFormatter.ofPattern("HH:mm")
+            val isMock = mockOffWorkTimeStr.isNotBlank()
             
-            val offWorkTime = if (mockOffWorkTimeStr.isNotBlank()) {
+            val offWorkTime = if (isMock) {
                 LocalTime.parse(mockOffWorkTimeStr.trim(), formatter)
             } else if (clockInTimeStr.isNotBlank()) {
-                val clockInTime = LocalTime.parse(clockInTimeStr.substringBefore(" ").trim(), formatter)
+                val cleanTime = clockInTimeStr.substringBefore(" ").substringBefore("(").trim()
+                val clockInTime = LocalTime.parse(cleanTime, formatter)
                 clockInTime.plusHours(9)
             } else {
                 return
@@ -192,35 +238,38 @@ class MobileNotificationHelper(private val context: Context) {
                 .withMinute(advanceTime.minute)
                 .withSecond(0)
 
-            if (startAdvanceDateTime.isBefore(now) && startAdvanceDateTime.plusMinutes(1).isBefore(now)) {
-                startAdvanceDateTime = startAdvanceDateTime.plusDays(1)
-            }
-
             var startOffDateTime = now
                 .withHour(offWorkTime.hour)
                 .withMinute(offWorkTime.minute)
                 .withSecond(0)
 
-            if (startOffDateTime.isBefore(now) && startOffDateTime.plusMinutes(1).isBefore(now)) {
-                startOffDateTime = startOffDateTime.plusDays(1)
+            if (isMock) {
+                if (startAdvanceDateTime.isBefore(now)) {
+                    startAdvanceDateTime = startAdvanceDateTime.plusDays(1)
+                }
+                if (startOffDateTime.isBefore(now)) {
+                    startOffDateTime = startOffDateTime.plusDays(1)
+                }
             }
 
             val timeAdvance = startAdvanceDateTime.toInstant().toEpochMilli()
             val timeOff = startOffDateTime.toInstant().toEpochMilli()
 
-            if (System.currentTimeMillis() < timeAdvance) {
+            if (notifyBefore && System.currentTimeMillis() < timeAdvance) {
                 setAlarm(
                     triggerAtMillis = timeAdvance,
                     requestCode = ADVANCE_NOTIFICATION_ID,
                     title = "提前通知",
                     message = "距離可下班時間還有 $advanceMinutes 分鐘！",
                     useLiveUpdates = useLiveUpdates,
-                    offWorkTimeMillis = timeOff
+                    offWorkTimeMillis = timeOff,
+                    advanceMinutes = advanceMinutes,
+                    showProgressBar = true
                 )
-                Log.d("MobileNotificationHelper", "Scheduled ADVANCE_NOTIFICATION at $startAdvanceDateTime for offWork $startOffDateTime")
+                Log.d("MobileNotificationHelper", "Scheduled ADVANCE_NOTIFICATION at $startAdvanceDateTime for offWork $startOffDateTime (showProgressBar=true)")
             }
 
-            if (System.currentTimeMillis() < timeOff) {
+            if (notifyOn && System.currentTimeMillis() < timeOff) {
                 setAlarm(
                     triggerAtMillis = timeOff,
                     requestCode = OFF_WORK_NOTIFICATION_ID,
@@ -267,9 +316,14 @@ class MobileNotificationHelper(private val context: Context) {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(startDateTime.toInstant().toEpochMilli(), startPendingIntent), startPendingIntent)
-                alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(endDateTime.toInstant().toEpochMilli(), endPendingIntent), endPendingIntent)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, startDateTime.toInstant().toEpochMilli(), startPendingIntent)
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endDateTime.toInstant().toEpochMilli(), endPendingIntent)
+                } else {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, startDateTime.toInstant().toEpochMilli(), startPendingIntent)
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endDateTime.toInstant().toEpochMilli(), endPendingIntent)
+                }
             } else {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, startDateTime.toInstant().toEpochMilli(), startPendingIntent)
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endDateTime.toInstant().toEpochMilli(), endPendingIntent)
@@ -305,7 +359,9 @@ class MobileNotificationHelper(private val context: Context) {
     fun postLiveUpdateNotification(
         offWorkTimeMillis: Long,
         title: String = "下班時間倒數",
-        text: String = "再過不久就可以下班囉"
+        text: String = "再過不久就可以下班囉",
+        advanceMinutes: Int = 10,
+        showProgressBar: Boolean = true
     ) {
         try {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -314,11 +370,53 @@ class MobileNotificationHelper(private val context: Context) {
                 context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
 
+            val totalSpanMillis = (advanceMinutes * 60 * 1000L).coerceAtLeast(1000L)
+            val now = System.currentTimeMillis()
+            val elapsed = (totalSpanMillis - (offWorkTimeMillis - now)).coerceIn(0L, totalSpanMillis)
+            val progress = ((elapsed * 100) / totalSpanMillis).toInt().coerceIn(0, 100)
+
+            if (showProgressBar && Build.VERSION.SDK_INT >= 36) {
+                try {
+                    val progressStyle = Notification.ProgressStyle()
+                        .setProgress(progress)
+                        .setProgressSegments(
+                            listOf(
+                                Notification.ProgressStyle.Segment(50).setColor(0xFF4285F4.toInt()),
+                                Notification.ProgressStyle.Segment(50).setColor(0xFF34A853.toInt())
+                            )
+                        )
+                        .setProgressPoints(
+                            listOf(
+                                Notification.ProgressStyle.Point(50).setColor(Color.WHITE)
+                            )
+                        )
+                        .setProgressTrackerIcon(Icon.createWithResource(context, R.drawable.ic_cloud_clock))
+
+                    val nativeBuilder = Notification.Builder(context, CHANNEL_ID)
+                        .setSmallIcon(R.drawable.ic_cloud_clock)
+                        .setContentTitle(title)
+                        .setContentText(text)
+                        .setStyle(progressStyle)
+                        .setUsesChronometer(true)
+                        .setChronometerCountDown(true)
+                        .setWhen(offWorkTimeMillis)
+                        .setOngoing(true)
+                        .setCategory(Notification.CATEGORY_PROGRESS)
+                        .setContentIntent(pendingIntent)
+                        .setRequestPromotedOngoing(true)
+
+                    manager.notify(LIVE_UPDATE_NOTIFICATION_ID, nativeBuilder.build())
+                    Log.d("MobileNotificationHelper", "Android 16 ProgressStyle Live Update notification posted (progress=$progress)")
+                    return
+                } catch (e: Throwable) {
+                    Log.e("MobileNotificationHelper", "Error applying Notification.ProgressStyle, falling back to NotificationCompat", e)
+                }
+            }
+
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_cloud_clock)
                 .setContentTitle(title)
                 .setContentText(text)
-                .setSubText("Live Update")
                 .setUsesChronometer(true)
                 .setChronometerCountDown(true)
                 .setWhen(offWorkTimeMillis)
@@ -329,6 +427,10 @@ class MobileNotificationHelper(private val context: Context) {
                 .setGroupSummary(false)
                 .setColorized(false)
 
+            if (showProgressBar) {
+                builder.setProgress(100, progress, false)
+            }
+
             if (Build.VERSION.SDK_INT >= 35) {
                 builder.setRequestPromotedOngoing(true)
             } else {
@@ -336,7 +438,7 @@ class MobileNotificationHelper(private val context: Context) {
             }
 
             manager.notify(LIVE_UPDATE_NOTIFICATION_ID, builder.build())
-            Log.d("MobileNotificationHelper", "Promoted Live Update notification posted with dynamic Chronometer Status Chip")
+            Log.d("MobileNotificationHelper", "Promoted Live Update notification posted (showProgressBar=$showProgressBar)")
         } catch (e: Exception) {
             Log.e("MobileNotificationHelper", "Failed to post Promoted Live Update notification", e)
         }
@@ -544,9 +646,16 @@ class NotificationReceiver : BroadcastReceiver() {
                         val typeStr = if (isClockingInAction) "上班卡" else "下班卡"
                         if (isClockingInAction) {
                             storage.saveClockIn(time)
-                            notificationHelper.scheduleReminders(time)
+                            val notifyBefore = storage.notifyBeforeOffWork.first()
+                            val notifyOn = storage.notifyOnOffWork.first()
+                            val advanceMinutes = storage.notifyAdvanceMinutes.first()
+                            val useLive = storage.useLiveUpdates.first()
+                            if (notifyBefore || notifyOn) {
+                                notificationHelper.scheduleReminders(time, advanceMinutes, useLive)
+                            }
                         } else {
                             storage.saveClockOut(time)
+                            notificationHelper.cancelReminders()
                         }
                         notificationHelper.sendNotification("WiXtar 手動打卡成功", "已成功打$typeStr ($time)")
                     } else {
@@ -574,14 +683,21 @@ class NotificationReceiver : BroadcastReceiver() {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val storage = AppStorage(context)
+                        val enabled = storage.forgetClockOutNotifyEnabled.first()
                         val clockIn = storage.clockInTime.first()
                         val clockOut = storage.clockOutTime.first()
-                        if (!clockIn.isNullOrBlank() && clockOut.isNullOrBlank()) {
+                        if (enabled && !clockIn.isNullOrBlank() && clockOut.isNullOrBlank()) {
                             helper.sendNotification(
                                 "你忘記打下班卡了！",
                                 "趕快打卡吧，不然要送補打卡單了",
                                 MobileNotificationHelper.FORGET_CLOCK_OUT_NOTIFICATION_ID
                             )
+                        }
+
+                        // Re-schedule for the next day to keep recurring
+                        if (enabled) {
+                            val targetTime = storage.forgetClockOutNotifyTime.first()
+                            helper.scheduleForgetClockOutReminders(targetTime)
                         }
                     } catch (e: Exception) {
                         Log.e("NotificationReceiver", "Error checking forget clock out status", e)
@@ -590,7 +706,13 @@ class NotificationReceiver : BroadcastReceiver() {
                     }
                 }
             } else if (requestCode == MobileNotificationHelper.ADVANCE_NOTIFICATION_ID && useLiveUpdates && offWorkTimeMillis > 0) {
-                helper.postLiveUpdateNotification(offWorkTimeMillis)
+                val advanceMinutes = intent.getIntExtra("advanceMinutes", 10)
+                val showProgressBar = intent.getBooleanExtra("showProgressBar", true)
+                helper.postLiveUpdateNotification(
+                    offWorkTimeMillis = offWorkTimeMillis,
+                    advanceMinutes = advanceMinutes,
+                    showProgressBar = showProgressBar
+                )
             } else if (requestCode == MobileNotificationHelper.OFF_WORK_NOTIFICATION_ID) {
                 val pendingResult = try { goAsync() } catch (_: Exception) { null }
                 CoroutineScope(Dispatchers.IO).launch {

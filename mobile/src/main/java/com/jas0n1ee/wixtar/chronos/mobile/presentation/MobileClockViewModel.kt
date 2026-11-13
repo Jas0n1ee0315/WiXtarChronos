@@ -185,6 +185,19 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
             clearExpiredClockDataInternal()
             checkConnectedWearables()
             checkHrHealth()
+
+            // Ensure daily recurring alarms are scheduled
+            val forgetEnabled = storage.forgetClockOutNotifyEnabled.first()
+            if (forgetEnabled) {
+                val forgetTime = storage.forgetClockOutNotifyTime.first()
+                notificationHelper.scheduleForgetClockOutReminders(forgetTime)
+            }
+            val lunchDnd = storage.lunchDndEnabled.first()
+            if (lunchDnd) {
+                val dndStart = storage.lunchDndStartTime.first()
+                val dndEnd = storage.lunchDndEndTime.first()
+                notificationHelper.scheduleLunchDndReminders(dndStart, dndEnd)
+            }
             
             cookie.collect { ck ->
                 if (ck.isNotBlank()) {
@@ -223,13 +236,17 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     clockInTimeStr = "",
                     advanceMinutes = notifyAdvanceMinutes.value,
                     useLiveUpdates = useLiveUpdates.value,
-                    mockOffWorkTimeStr = mockTimeStr
+                    mockOffWorkTimeStr = mockTimeStr,
+                    notifyBefore = notifyBeforeOffWork.value,
+                    notifyOn = notifyOnOffWork.value
                 )
 
                 notificationHelper.postLiveUpdateNotification(
                     offWorkTimeMillis = targetMillis,
                     title = "下班時間倒數",
-                    text = "再過不久就可以下班囉"
+                    text = "再過不久就可以下班囉",
+                    advanceMinutes = notifyAdvanceMinutes.value,
+                    showProgressBar = notifyBeforeOffWork.value
                 )
                 _message.value = "已發送測試 Live Update 通知 (模擬下班時間: $mockTimeStr)"
             } catch (e: Exception) {
@@ -546,6 +563,18 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     cloudIn?.let { storage.saveClockIn(it) }
                     cloudOut?.let { storage.saveClockOut(it) }
 
+                    if (!cloudIn.isNullOrBlank() && cloudOut.isNullOrBlank()) {
+                        val notifyBefore = storage.notifyBeforeOffWork.first()
+                        val notifyOn = storage.notifyOnOffWork.first()
+                        val advanceMinutes = storage.notifyAdvanceMinutes.first()
+                        val useLive = storage.useLiveUpdates.first()
+                        if (notifyBefore || notifyOn) {
+                            notificationHelper.scheduleReminders(cloudIn, advanceMinutes, useLive)
+                        }
+                    } else if (!cloudOut.isNullOrBlank()) {
+                        notificationHelper.cancelReminders()
+                    }
+
                     if (enableWatchSync.value) {
                         val todayStr = java.time.LocalDate.now().toString()
                         WearableSyncManager.syncClockStatus(getApplication(), cloudIn, cloudOut, todayStr)
@@ -594,12 +623,19 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
             )
 
             if (notifyBeforeVal || notifyOnVal) {
-                notificationHelper.scheduleReminders(
-                    clockInTimeStr = clockInTime.value ?: "",
-                    advanceMinutes = advanceMinutesVal,
-                    useLiveUpdates = useLiveUpdatesVal,
-                    mockOffWorkTimeStr = mockOffWorkTimeVal
-                )
+                val currentIn = clockInTime.value
+                val cleanIn = currentIn?.substringBefore(" ")?.substringBefore("(")?.trim()
+                if (!cleanIn.isNullOrBlank()) {
+                    notificationHelper.scheduleReminders(
+                        clockInTimeStr = cleanIn,
+                        advanceMinutes = advanceMinutesVal,
+                        useLiveUpdates = useLiveUpdatesVal,
+                        notifyBefore = notifyBeforeVal,
+                        notifyOn = notifyOnVal
+                    )
+                }
+            } else {
+                notificationHelper.cancelReminders()
             }
 
             if (lunchDndEnabledVal) {
@@ -608,6 +644,8 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
 
             if (forgetClockOutEnabledVal) {
                 notificationHelper.scheduleForgetClockOutReminders(forgetClockOutTimeVal)
+            } else {
+                notificationHelper.cancelForgetClockOutReminder()
             }
 
             if (enableWatchSync.value) {
@@ -855,11 +893,17 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 val time = result.getOrNull() ?: ""
                 if (isClockingInAction) {
                     storage.saveClockIn(time)
-                    notificationHelper.scheduleReminders(time, notifyAdvanceMinutes.value, useLiveUpdates.value, mockOffWorkTime.value)
+                    val notifyBefore = storage.notifyBeforeOffWork.first()
+                    val notifyOn = storage.notifyOnOffWork.first()
+                    val advanceMinutes = storage.notifyAdvanceMinutes.first()
+                    val useLive = storage.useLiveUpdates.first()
+                    if (notifyBefore || notifyOn) {
+                        notificationHelper.scheduleReminders(time, advanceMinutes, useLive)
+                    }
                     _message.value = "打卡成功: 上班卡 ($time)"
                 } else {
                     storage.saveClockOut(time)
-                    notificationHelper.cancelLiveUpdateNotification()
+                    notificationHelper.cancelReminders()
                     _message.value = "打卡成功: 下班卡 ($time)"
                 }
 

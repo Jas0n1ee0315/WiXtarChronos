@@ -17,6 +17,8 @@ import com.jas0n1ee.wixtar.chronos.data.MidnightAlarmHelper
 import com.jas0n1ee.wixtar.chronos.data.SavedAgent
 import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
+import com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy
+import com.jas0n1ee.wixtar.chronos.mobile.autoclock.AutoClockManager
 import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
 import com.jas0n1ee.wixtar.chronos.mobile.worker.DailyResetWorker
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +35,8 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 class MobileClockViewModel(application: Application) : AndroidViewModel(application) {
     private val storage = AppStorage(application)
@@ -182,6 +186,36 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
     val savedAgents: StateFlow<List<SavedAgent>> =
         storage.savedAgents.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    private val _todayAttendanceRecord = MutableStateFlow<AttendanceRecord?>(null)
+    val todayAttendanceRecord: StateFlow<AttendanceRecord?> = _todayAttendanceRecord
+
+    val autoClockInEnabled: StateFlow<Boolean> =
+        storage.autoClockInEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val workStartTime: StateFlow<String> =
+        storage.workStartTime.stateIn(viewModelScope, SharingStarted.Eagerly, "09:00")
+    val flexibleClockInEnabled: StateFlow<Boolean> =
+        storage.flexibleClockInEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val flexibleStartTime: StateFlow<String> =
+        storage.flexibleStartTime.stateIn(viewModelScope, SharingStarted.Eagerly, "09:00")
+    val flexibleEndTime: StateFlow<String> =
+        storage.flexibleEndTime.stateIn(viewModelScope, SharingStarted.Eagerly, "09:30")
+    val autoClockOutEnabled: StateFlow<Boolean> =
+        storage.autoClockOutEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val expectedOffWorkTime: StateFlow<String> = combine(clockInTime, _todayAttendanceRecord) { inTime, record ->
+        if (inTime.isNullOrBlank()) return@combine ""
+        try {
+            val rawTime = inTime.substringBefore(" ").substringBefore("(").trim()
+            val formatter = DateTimeFormatter.ofPattern("HH:mm")
+            val parsedIn = LocalTime.parse(rawTime, formatter)
+            val leaveIntervals = WorkShiftPolicy.parseLeaveIntervals(record?.leave.orEmpty())
+            val offWork = WorkShiftPolicy.calculateExpectedOffWorkTime(parsedIn, leaveIntervals)
+            offWork.format(formatter)
+        } catch (e: Exception) {
+            ""
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
     init {
         DailyResetWorker.scheduleDailyReset(getApplication())
 
@@ -201,6 +235,10 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 val dndStart = storage.lunchDndStartTime.first()
                 val dndEnd = storage.lunchDndEndTime.first()
                 notificationHelper.scheduleLunchDndReminders(dndStart, dndEnd)
+            }
+
+            if (storage.autoClockInEnabled.first()) {
+                AutoClockManager(getApplication()).scheduleAutoClockIn()
             }
             
             cookie.collect { ck ->
@@ -562,6 +600,12 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
             _isRefreshing.value = true
             checkHrHealth()
             clearExpiredClockDataInternal()
+
+            val today = LocalDate.now()
+            repository.getAttendanceSummary(today, today).onSuccess { list ->
+                _todayAttendanceRecord.value = list.firstOrNull()
+            }
+
             val ck = storage.cookie.first().trim()
             val id = storage.empId.first().trim()
             val pass = storage.password.first().trim()
@@ -575,15 +619,34 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     cloudOut?.let { storage.saveClockOut(it) }
 
                     if (!cloudIn.isNullOrBlank() && cloudOut.isNullOrBlank()) {
+                        val cleanTime = cloudIn.substringBefore(" ").substringBefore("(").trim()
+                        val formatter = DateTimeFormatter.ofPattern("HH:mm")
+                        val parsedIn = try { LocalTime.parse(cleanTime, formatter) } catch (_: Exception) { LocalTime.of(9, 0) }
+                        val leaveIntervals = WorkShiftPolicy.parseLeaveIntervals(_todayAttendanceRecord.value?.leave.orEmpty())
+                        val offWork = WorkShiftPolicy.calculateExpectedOffWorkTime(parsedIn, leaveIntervals)
+
                         val notifyBefore = storage.notifyBeforeOffWork.first()
                         val notifyOn = storage.notifyOnOffWork.first()
                         val advanceMinutes = storage.notifyAdvanceMinutes.first()
                         val useLive = storage.useLiveUpdates.first()
                         if (notifyBefore || notifyOn) {
-                            notificationHelper.scheduleReminders(cloudIn, advanceMinutes, useLive)
+                            notificationHelper.scheduleReminders(
+                                clockInTimeStr = cleanTime,
+                                advanceMinutes = advanceMinutes,
+                                useLiveUpdates = useLive,
+                                mockOffWorkTimeStr = offWork.format(formatter),
+                                notifyBefore = notifyBefore,
+                                notifyOn = notifyOn
+                            )
+                        }
+
+                        val autoOut = storage.autoClockOutEnabled.first()
+                        if (autoOut) {
+                            AutoClockManager(getApplication()).scheduleAutoClockOut(offWork, bufferSeconds = 5)
                         }
                     } else if (!cloudOut.isNullOrBlank()) {
                         notificationHelper.cancelReminders()
+                        AutoClockManager(getApplication()).cancelAutoClockOut()
                     }
 
                     if (enableWatchSync.value) {
@@ -910,17 +973,36 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                 val time = result.getOrNull() ?: ""
                 if (isClockingInAction) {
                     storage.saveClockIn(time)
+                    val cleanTime = time.substringBefore(" ").substringBefore("(").trim()
+                    val formatter = DateTimeFormatter.ofPattern("HH:mm")
+                    val parsedIn = try { LocalTime.parse(cleanTime, formatter) } catch (_: Exception) { LocalTime.of(9, 0) }
+                    val leaveIntervals = WorkShiftPolicy.parseLeaveIntervals(_todayAttendanceRecord.value?.leave.orEmpty())
+                    val offWork = WorkShiftPolicy.calculateExpectedOffWorkTime(parsedIn, leaveIntervals)
+
                     val notifyBefore = storage.notifyBeforeOffWork.first()
                     val notifyOn = storage.notifyOnOffWork.first()
                     val advanceMinutes = storage.notifyAdvanceMinutes.first()
                     val useLive = storage.useLiveUpdates.first()
                     if (notifyBefore || notifyOn) {
-                        notificationHelper.scheduleReminders(time, advanceMinutes, useLive)
+                        notificationHelper.scheduleReminders(
+                            clockInTimeStr = cleanTime,
+                            advanceMinutes = advanceMinutes,
+                            useLiveUpdates = useLive,
+                            mockOffWorkTimeStr = offWork.format(formatter),
+                            notifyBefore = notifyBefore,
+                            notifyOn = notifyOn
+                        )
                     }
+
+                    if (storage.autoClockOutEnabled.first()) {
+                        AutoClockManager(getApplication()).scheduleAutoClockOut(offWork, bufferSeconds = 5)
+                    }
+
                     _message.value = "打卡成功: 上班卡 ($time)"
                 } else {
                     storage.saveClockOut(time)
                     notificationHelper.cancelReminders()
+                    AutoClockManager(getApplication()).cancelAutoClockOut()
                     _message.value = "打卡成功: 下班卡 ($time)"
                 }
 
@@ -965,6 +1047,55 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
 
     fun openNotificationPolicySettings() {
         notificationHelper.openNotificationPolicySettings()
+    }
+
+    fun saveAutoClockSettings(
+        autoIn: Boolean? = null,
+        workStart: String? = null,
+        flexIn: Boolean? = null,
+        flexStart: String? = null,
+        flexEnd: String? = null,
+        autoOut: Boolean? = null
+    ) {
+        viewModelScope.launch {
+            val newAutoIn = autoIn ?: autoClockInEnabled.value
+            val newWorkStart = workStart ?: workStartTime.value
+            val newFlexIn = flexIn ?: flexibleClockInEnabled.value
+            val newFlexStart = flexStart ?: newWorkStart // Flexible start time always equals work start time
+            val newFlexEnd = flexEnd ?: flexibleEndTime.value
+            val newAutoOut = autoOut ?: autoClockOutEnabled.value
+
+            storage.saveAutoClockSettings(
+                autoIn = newAutoIn,
+                workStart = newWorkStart,
+                flexIn = newFlexIn,
+                flexStart = newFlexStart,
+                flexEnd = newFlexEnd,
+                autoOut = newAutoOut
+            )
+
+            val manager = AutoClockManager(getApplication())
+            if (newAutoIn) {
+                manager.scheduleAutoClockIn()
+            } else {
+                manager.cancelAutoClockIn()
+            }
+
+            if (newAutoOut) {
+                val currentIn = clockInTime.value
+                val currentOut = clockOutTime.value
+                if (!currentIn.isNullOrBlank() && currentOut.isNullOrBlank()) {
+                    val cleanTime = currentIn.substringBefore(" ").substringBefore("(").trim()
+                    val formatter = DateTimeFormatter.ofPattern("HH:mm")
+                    val parsedIn = try { LocalTime.parse(cleanTime, formatter) } catch (_: Exception) { LocalTime.of(9, 0) }
+                    val leaveIntervals = WorkShiftPolicy.parseLeaveIntervals(_todayAttendanceRecord.value?.leave.orEmpty())
+                    val offWork = WorkShiftPolicy.calculateExpectedOffWorkTime(parsedIn, leaveIntervals)
+                    manager.scheduleAutoClockOut(offWork, bufferSeconds = 5)
+                }
+            } else {
+                manager.cancelAutoClockOut()
+            }
+        }
     }
 
     fun clearError() {

@@ -48,6 +48,22 @@ class BootReceiver : BroadcastReceiver() {
                         val forgetTime = storage.forgetClockOutNotifyTime.first()
                         notificationHelper.scheduleForgetClockOutReminders(forgetTime)
                     }
+
+                    val autoClockManager = com.jas0n1ee.wixtar.chronos.mobile.autoclock.AutoClockManager(context)
+                    if (storage.autoClockInEnabled.first()) {
+                        autoClockManager.scheduleAutoClockIn()
+                    }
+                    if (storage.autoClockOutEnabled.first() && !clockIn.isNullOrBlank() && clockOut.isNullOrBlank()) {
+                        try {
+                            val cleanTime = clockIn.substringBefore(" ").substringBefore("(").trim()
+                            val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                            val inTime = java.time.LocalTime.parse(cleanTime, formatter)
+                            val offWork = com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy.calculateExpectedOffWorkTime(inTime)
+                            autoClockManager.scheduleAutoClockOut(offWork, bufferSeconds = 5)
+                        } catch (e: Exception) {
+                            Log.e("BootReceiver", "Error re-scheduling auto clock out", e)
+                        }
+                    }
                 } catch (e: Exception) {
                     Log.e("BootReceiver", "Error re-scheduling after $action", e)
                 } finally {

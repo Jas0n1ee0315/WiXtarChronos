@@ -53,6 +53,13 @@ class AppStorage(private val context: Context) {
         val TRACKER_CUSTOM_EMOJI = stringPreferencesKey("tracker_custom_emoji")
         val TRACKER_FLIP_HORIZONTAL = booleanPreferencesKey("tracker_flip_horizontal")
 
+        val AUTO_CLOCK_IN_ENABLED = booleanPreferencesKey("auto_clock_in_enabled")
+        val WORK_START_TIME = stringPreferencesKey("work_start_time")
+        val FLEXIBLE_CLOCK_IN_ENABLED = booleanPreferencesKey("flexible_clock_in_enabled")
+        val FLEXIBLE_START_TIME = stringPreferencesKey("flexible_start_time")
+        val FLEXIBLE_END_TIME = stringPreferencesKey("flexible_end_time")
+        val AUTO_CLOCK_OUT_ENABLED = booleanPreferencesKey("auto_clock_out_enabled")
+
         val AGENT_EMP_ID = stringPreferencesKey("agent_emp_id")
         val AGENT_NAME = stringPreferencesKey("agent_name")
         val AGENT_DEPT = stringPreferencesKey("agent_dept")
@@ -84,6 +91,13 @@ class AppStorage(private val context: Context) {
     val trackerIconMode: Flow<String> = context.dataStore.data.map { it[TRACKER_ICON_MODE] ?: "sprint" }
     val trackerCustomEmoji: Flow<String> = context.dataStore.data.map { it[TRACKER_CUSTOM_EMOJI] ?: "🚀" }
     val trackerFlipHorizontal: Flow<Boolean> = context.dataStore.data.map { it[TRACKER_FLIP_HORIZONTAL] ?: true }
+
+    val autoClockInEnabled: Flow<Boolean> = context.dataStore.data.map { it[AUTO_CLOCK_IN_ENABLED] ?: false }
+    val workStartTime: Flow<String> = context.dataStore.data.map { it[WORK_START_TIME] ?: "09:00" }
+    val flexibleClockInEnabled: Flow<Boolean> = context.dataStore.data.map { it[FLEXIBLE_CLOCK_IN_ENABLED] ?: false }
+    val flexibleStartTime: Flow<String> = context.dataStore.data.map { it[FLEXIBLE_START_TIME] ?: "09:00" }
+    val flexibleEndTime: Flow<String> = context.dataStore.data.map { it[FLEXIBLE_END_TIME] ?: "09:30" }
+    val autoClockOutEnabled: Flow<Boolean> = context.dataStore.data.map { it[AUTO_CLOCK_OUT_ENABLED] ?: false }
 
     val agentEmpId: Flow<String> = context.dataStore.data.map { it[AGENT_EMP_ID] ?: "" }
     val agentName: Flow<String> = context.dataStore.data.map { it[AGENT_NAME] ?: "" }
@@ -187,6 +201,24 @@ class AppStorage(private val context: Context) {
             prefs[TRACKER_ICON_MODE] = mode
             prefs[TRACKER_CUSTOM_EMOJI] = customEmoji
             prefs[TRACKER_FLIP_HORIZONTAL] = flipHorizontal
+        }
+    }
+
+    suspend fun saveAutoClockSettings(
+        autoIn: Boolean,
+        workStart: String,
+        flexIn: Boolean,
+        flexStart: String,
+        flexEnd: String,
+        autoOut: Boolean
+    ) {
+        context.dataStore.edit { prefs ->
+            prefs[AUTO_CLOCK_IN_ENABLED] = autoIn
+            prefs[WORK_START_TIME] = workStart
+            prefs[FLEXIBLE_CLOCK_IN_ENABLED] = flexIn
+            prefs[FLEXIBLE_START_TIME] = flexStart
+            prefs[FLEXIBLE_END_TIME] = flexEnd
+            prefs[AUTO_CLOCK_OUT_ENABLED] = autoOut
         }
     }
 

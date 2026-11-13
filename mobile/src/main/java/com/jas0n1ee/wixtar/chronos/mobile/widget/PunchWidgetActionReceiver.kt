@@ -117,9 +117,21 @@ class PunchWidgetActionReceiver : BroadcastReceiver() {
                             if (notifyBefore || notifyOn) {
                                 notificationHelper.scheduleReminders(time, advanceMinutes, useLive)
                             }
+                            if (storage.autoClockOutEnabled.first()) {
+                                try {
+                                    val cleanTime = time.substringBefore(" ").substringBefore("(").trim()
+                                    val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                                    val inTime = java.time.LocalTime.parse(cleanTime, formatter)
+                                    val offWork = com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy.calculateExpectedOffWorkTime(inTime)
+                                    com.jas0n1ee.wixtar.chronos.mobile.autoclock.AutoClockManager(context).scheduleAutoClockOut(offWork, bufferSeconds = 5)
+                                } catch (e: Exception) {
+                                    Log.e("PunchWidgetActionReceiver", "Error scheduling auto clock out", e)
+                                }
+                            }
                         } else {
                             storage.saveClockOut(time)
                             notificationHelper.cancelReminders()
+                            com.jas0n1ee.wixtar.chronos.mobile.autoclock.AutoClockManager(context).cancelAutoClockOut()
                         }
 
                         val enableWatchSync = storage.enableWatchSync.first()

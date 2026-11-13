@@ -235,7 +235,7 @@ class MobileNotificationHelper(private val context: Context) {
             } else if (clockInTimeStr.isNotBlank()) {
                 val cleanTime = clockInTimeStr.substringBefore(" ").substringBefore("(").trim()
                 val clockInTime = LocalTime.parse(cleanTime, formatter)
-                clockInTime.plusHours(9)
+                com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy.calculateExpectedOffWorkTime(clockInTime)
             } else {
                 return
             }
@@ -787,9 +787,21 @@ class NotificationReceiver : BroadcastReceiver() {
                             if (notifyBefore || notifyOn) {
                                 notificationHelper.scheduleReminders(time, advanceMinutes, useLive)
                             }
+                            if (storage.autoClockOutEnabled.first()) {
+                                try {
+                                    val cleanTime = time.substringBefore(" ").substringBefore("(").trim()
+                                    val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                                    val inTime = java.time.LocalTime.parse(cleanTime, formatter)
+                                    val offWork = com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy.calculateExpectedOffWorkTime(inTime)
+                                    com.jas0n1ee.wixtar.chronos.mobile.autoclock.AutoClockManager(context).scheduleAutoClockOut(offWork, bufferSeconds = 5)
+                                } catch (e: Exception) {
+                                    Log.e("MobileNotificationHelper", "Error scheduling auto clock out", e)
+                                }
+                            }
                         } else {
                             storage.saveClockOut(time)
                             notificationHelper.cancelReminders()
+                            com.jas0n1ee.wixtar.chronos.mobile.autoclock.AutoClockManager(context).cancelAutoClockOut()
                         }
                         notificationHelper.sendNotification("WiXtar 手動打卡成功", "已成功打$typeStr ($time)")
                     } else {

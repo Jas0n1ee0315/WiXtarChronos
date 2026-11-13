@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,6 +41,17 @@ fun PunchCardScreen(
     val isHrSystemNormal by viewModel.isHrSystemNormal.collectAsState()
     val hrRetryCountdown by viewModel.hrRetryCountdown.collectAsState()
 
+    val autoClockInEnabled by viewModel.autoClockInEnabled.collectAsState()
+    val workStartTime by viewModel.workStartTime.collectAsState()
+    val flexibleClockInEnabled by viewModel.flexibleClockInEnabled.collectAsState()
+    val flexibleStartTime by viewModel.flexibleStartTime.collectAsState()
+    val flexibleEndTime by viewModel.flexibleEndTime.collectAsState()
+    val autoClockOutEnabled by viewModel.autoClockOutEnabled.collectAsState()
+    val offWorkTimeStr by viewModel.expectedOffWorkTime.collectAsState()
+
+    var showTimePickerDialog by remember { mutableStateOf(false) }
+    var activeTimePickerTarget by remember { mutableStateOf<String?>(null) }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -60,21 +72,6 @@ fun PunchCardScreen(
 
     LaunchedEffect(Unit) {
         viewModel.checkAndClearExpiredClockData()
-    }
-
-    val offWorkTimeStr = remember(clockInTime) {
-        if (!clockInTime.isNullOrBlank()) {
-            try {
-                val rawTime = clockInTime?.substringBefore(" ") ?: ""
-                val formatter = DateTimeFormatter.ofPattern("HH:mm")
-                val time = LocalTime.parse(rawTime, formatter)
-                time.plusHours(9).format(formatter)
-            } catch (e: Exception) {
-                ""
-            }
-        } else {
-            ""
-        }
     }
 
     val actionButtonText = remember(clockInTime, clockOutTime) {
@@ -277,6 +274,263 @@ fun PunchCardScreen(
                     }
                 }
             }
+
+            // Auto Clock Settings Card
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.elevatedCardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "自動打卡",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    // 1. 自動打上班卡 (Switch)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "自動打上班卡",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "打卡前自動預檢考勤表與請假單",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = autoClockInEnabled,
+                            onCheckedChange = { checked ->
+                                viewModel.saveAutoClockSettings(autoIn = checked)
+                            }
+                        )
+                    }
+
+                    // 2. 上班卡時間 (Only shown when autoClockInEnabled is true)
+                    if (autoClockInEnabled) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "上班卡時間",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "排程觸發打卡的時間點 (預設 09:00)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Surface(
+                                onClick = {
+                                    activeTimePickerTarget = "WORK_START"
+                                    showTimePickerDialog = true
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    text = workStartTime,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+
+                        // 3. 彈性打上班卡 (Switch, only shown when autoClockInEnabled is true)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "彈性打上班卡",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "在彈性區間內隨機時間觸發打卡",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = flexibleClockInEnabled,
+                                onCheckedChange = { checked ->
+                                    viewModel.saveAutoClockSettings(flexIn = checked)
+                                }
+                            )
+                        }
+
+                        // 4. 彈性上班區間 (Only shown when flexibleClockInEnabled is true)
+                        if (flexibleClockInEnabled) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "彈性上班區間",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = "起始時間固定為上班卡時間，可點擊調整結束時間",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Surface(
+                                    onClick = {
+                                        activeTimePickerTarget = "FLEXIBLE_END"
+                                        showTimePickerDialog = true
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.secondaryContainer
+                                ) {
+                                    Text(
+                                        text = "$workStartTime ~ $flexibleEndTime",
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 5. 自動下班卡 (Switch)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "自動打下班卡",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "當日已打上班卡，於可下班時間後 5 秒自動打卡",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = autoClockOutEnabled,
+                            onCheckedChange = { checked ->
+                                viewModel.saveAutoClockSettings(autoOut = checked)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        if (showTimePickerDialog && activeTimePickerTarget != null) {
+            val currentTimeStr = when (activeTimePickerTarget) {
+                "WORK_START" -> workStartTime
+                "FLEXIBLE_END" -> flexibleEndTime
+                else -> "09:00"
+            }
+            val parts = currentTimeStr.split(":")
+            val initialHour = parts.getOrNull(0)?.toIntOrNull() ?: 9
+            val initialMinute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+
+            val timePickerState = rememberTimePickerState(
+                initialHour = initialHour,
+                initialMinute = initialMinute,
+                is24Hour = true
+            )
+
+            AlertDialog(
+                onDismissRequest = {
+                    showTimePickerDialog = false
+                    activeTimePickerTarget = null
+                },
+                title = {
+                    Text(
+                        text = if (activeTimePickerTarget == "WORK_START") "設定上班卡時間" else "設定彈性結束時間",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val formatted = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
+                            if (activeTimePickerTarget == "WORK_START") {
+                                viewModel.saveAutoClockSettings(workStart = formatted, flexStart = formatted)
+                            } else if (activeTimePickerTarget == "FLEXIBLE_END") {
+                                viewModel.saveAutoClockSettings(flexEnd = formatted)
+                            }
+                            showTimePickerDialog = false
+                            activeTimePickerTarget = null
+                        }
+                    ) {
+                        Text("確定")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showTimePickerDialog = false
+                            activeTimePickerTarget = null
+                        }
+                    ) {
+                        Text("取消")
+                    }
+                },
+                text = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        TimePicker(state = timePickerState)
+                    }
+                }
+            )
         }
 
         val context = LocalContext.current

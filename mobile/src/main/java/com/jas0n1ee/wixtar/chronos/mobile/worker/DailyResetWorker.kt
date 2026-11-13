@@ -66,6 +66,12 @@ class DailyResetWorker(
                 notificationHelper.scheduleForgetClockOutReminders(forgetTime)
             }
 
+            try {
+                com.jas0n1ee.wixtar.chronos.mobile.autoclock.AutoClockManager(appContext).scheduleAutoClockIn()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to schedule Auto Clock In during daily reset", e)
+            }
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 try {
                     TileService.requestListeningState(

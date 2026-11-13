@@ -1549,6 +1549,15 @@
         </receiver>
 
         <receiver
+            android:name="com.jas0n1ee.wixtar.chronos.mobile.receiver.AutoClockReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.jas0n1ee.wixtar.chronos.ACTION_AUTO_CLOCK_IN" />
+                <action android:name="com.jas0n1ee.wixtar.chronos.ACTION_AUTO_CLOCK_OUT" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name="com.jas0n1ee.wixtar.chronos.mobile.receiver.LunchDndReceiver"
             android:exported="false">
             <intent-filter>

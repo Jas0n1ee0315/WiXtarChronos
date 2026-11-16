@@ -14,11 +14,13 @@ class AutoClockReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_AUTO_CLOCK_IN = "com.jas0n1ee.wixtar.chronos.ACTION_AUTO_CLOCK_IN"
         const val ACTION_AUTO_CLOCK_OUT = "com.jas0n1ee.wixtar.chronos.ACTION_AUTO_CLOCK_OUT"
+        const val EXTRA_RETRY_COUNT = "extra_retry_count"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
-        Log.d("AutoClockReceiver", "Received action: $action")
+        val retryCount = intent.getIntExtra(EXTRA_RETRY_COUNT, 0)
+        Log.d("AutoClockReceiver", "Received action: $action, retryCount: $retryCount")
 
         val pendingResult = try { goAsync() } catch (_: Exception) { null }
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
@@ -34,10 +36,10 @@ class AutoClockReceiver : BroadcastReceiver() {
                 val manager = AutoClockManager(context)
                 when (action) {
                     ACTION_AUTO_CLOCK_IN -> {
-                        manager.handleAutoClockInTrigger()
+                        manager.handleAutoClockInTrigger(retryCount)
                     }
                     ACTION_AUTO_CLOCK_OUT -> {
-                        manager.handleAutoClockOutTrigger()
+                        manager.handleAutoClockOutTrigger(retryCount)
                     }
                 }
             } catch (e: Exception) {

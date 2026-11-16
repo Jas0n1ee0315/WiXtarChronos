@@ -235,7 +235,16 @@ fun MakeupPunchScreen(
                 )
             },
             text = {
-                Text(text = message)
+                val cleanMessage = message
+                    .replace(Regex("(?i)<br\\s*/?>"), "\n")
+                    .replace(Regex("<[^>]*>"), "")
+                    .replace(Regex("[ \\t]+"), " ")
+                    .lines()
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .joinToString("\n")
+                    .trim()
+                Text(text = cleanMessage)
             },
             confirmButton = {
                 TextButton(onClick = { viewModel.clearMakeupResultDialog() }) {

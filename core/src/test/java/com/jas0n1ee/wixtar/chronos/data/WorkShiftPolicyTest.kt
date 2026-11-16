@@ -119,4 +119,15 @@ class WorkShiftPolicyTest {
             WorkShiftPolicy.calculateExpectedOffWorkTime(LocalTime.of(11, 0), morningLeave)
         )
     }
+
+    @Test
+    fun testCleanHtmlTags() {
+        val rawInput = "<value>補登單新增完成且進入流程等待簽核，謝謝<br></value><value></value>"
+        val cleaned = WorkShiftPolicy.cleanHtmlTags(rawInput)
+        assertEquals("補登單新增完成且進入流程等待簽核，謝謝", cleaned)
+
+        val rawWithEntities = "&lt;value&gt;測試 &amp; 成功&lt;br&gt;&lt;/value&gt;"
+        val cleanedEntities = WorkShiftPolicy.cleanHtmlTags(rawWithEntities)
+        assertEquals("測試 & 成功", cleanedEntities)
+    }
 }

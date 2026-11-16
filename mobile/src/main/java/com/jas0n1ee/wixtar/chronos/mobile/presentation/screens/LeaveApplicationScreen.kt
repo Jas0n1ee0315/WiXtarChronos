@@ -741,7 +741,18 @@ fun LeaveApplicationScreen(
                 )
             },
             title = { Text(if (isSuccess) "請假申請結果" else "請假送出提示") },
-            text = { Text(msg) },
+            text = {
+                val cleanMsg = msg
+                    .replace(Regex("(?i)<br\\s*/?>"), "\n")
+                    .replace(Regex("<[^>]*>"), "")
+                    .replace(Regex("[ \\t]+"), " ")
+                    .lines()
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .joinToString("\n")
+                    .trim()
+                Text(cleanMsg)
+            },
             confirmButton = {
                 TextButton(onClick = { viewModel.clearLeaveResultDialog() }) {
                     Text("確定")

@@ -16,6 +16,28 @@ object WorkShiftPolicy {
     )
 
     /**
+     * Cleans HTML tags, entities, and excessive whitespace from server messages
+     * (e.g. "<value>補登單新增完成且進入流程等待簽核，謝謝<br></value><value></value>")
+     */
+    fun cleanHtmlTags(text: String): String {
+        return text
+            .replace("&#039;", "'")
+            .replace("&#39;", "'")
+            .replace("&quot;", "\"")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&amp;", "&")
+            .replace(Regex("(?i)<br\\s*/?>"), "\n")
+            .replace(Regex("<[^>]*>"), "")
+            .replace(Regex("[ \\t]+"), " ")
+            .lines()
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .joinToString("\n")
+            .trim()
+    }
+
+    /**
      * Parses leave string from B4.1 (e.g. "0900-1100 特休", "<SPAN>0900-1400 事假</SPAN>")
      */
     fun parseLeaveIntervals(leaveText: String): List<LeaveInterval> {

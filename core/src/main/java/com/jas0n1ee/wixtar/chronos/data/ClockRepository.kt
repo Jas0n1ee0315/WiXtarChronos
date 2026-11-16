@@ -573,6 +573,10 @@ class ClockRepository(private val storage: AppStorage) {
             .replace("&amp;", "&")
     }
 
+    fun cleanHtmlTags(text: String): String {
+        return WorkShiftPolicy.cleanHtmlTags(text)
+    }
+
     private fun parseAttendanceTableXml(xml: String): List<AttendanceRecord> {
         val unescaped = unescapeHtmlEntities(xml)
         val marker = "EMC['table1'].setTableData("
@@ -934,13 +938,13 @@ class ClockRepository(private val storage: AppStorage) {
 
             val messageMatch = Pattern.compile("<Message>(.*?)</Message>", Pattern.DOTALL).matcher(body)
             val serverMessage = if (messageMatch.find()) {
-                unescapeHtmlEntities(messageMatch.group(1)?.trim().orEmpty())
+                cleanHtmlTags(messageMatch.group(1)?.trim().orEmpty())
             } else {
                 val scriptMsgMatch = Pattern.compile("""(?:alert|showMessage|MessageBox\.show)\s*\(\s*(?:\{[^}]*msg\s*:\s*)?['"]([^'"]+)['"]""").matcher(body)
                 if (scriptMsgMatch.find()) {
-                    unescapeHtmlEntities(scriptMsgMatch.group(1)?.trim().orEmpty())
+                    cleanHtmlTags(scriptMsgMatch.group(1)?.trim().orEmpty())
                 } else {
-                    unescapeHtmlEntities(body.replace(Regex("<[^>]*>"), " ").replace(Regex("\\s+"), " ").trim())
+                    cleanHtmlTags(body)
                 }
             }
 
@@ -1393,13 +1397,13 @@ class ClockRepository(private val storage: AppStorage) {
         val decoded = unescapeHtmlEntities(body)
         val messageMatch = Pattern.compile("<Message>(.*?)</Message>", Pattern.DOTALL).matcher(decoded)
         if (messageMatch.find()) {
-            return messageMatch.group(1)?.trim().orEmpty()
+            return cleanHtmlTags(messageMatch.group(1)?.trim().orEmpty())
         }
         val scriptMsgMatch = Pattern.compile("""(?:alert|showMessage|MessageBox\.show)\s*\(\s*(?:\{[^}]*msg\s*:\s*)?['"]([^'"]+)['"]""").matcher(decoded)
         if (scriptMsgMatch.find()) {
-            return scriptMsgMatch.group(1)?.trim().orEmpty()
+            return cleanHtmlTags(scriptMsgMatch.group(1)?.trim().orEmpty())
         }
-        return decoded.replace(Regex("<[^>]*>"), " ").replace(Regex("\\s+"), " ").trim()
+        return cleanHtmlTags(decoded)
     }
 
     private fun executePrepareLeaveConfirmation(

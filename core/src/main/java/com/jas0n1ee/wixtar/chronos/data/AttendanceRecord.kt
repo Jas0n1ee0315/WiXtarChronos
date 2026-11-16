@@ -27,11 +27,12 @@ data class AttendanceRecord(
     val hasAbnormal: Boolean
         get() = abnormal.isNotBlank()
 
+    /**
+     * 出勤明細視窗顯示的欄位。
+     * 不列出部門名稱、員工編號、員工姓名（都是自己，資訊多餘），
+     * 以及日期（已顯示在視窗標題「{日期} 明細」）。
+     */
     fun toDetailPairs(): List<Pair<String, String>> = listOf(
-        "部門名稱" to department,
-        "員工編號" to empId,
-        "員工姓名" to empName,
-        "日期" to date,
         "班別" to shiftName,
         "班別時間" to shiftTime,
         "進卡" to clockIn,

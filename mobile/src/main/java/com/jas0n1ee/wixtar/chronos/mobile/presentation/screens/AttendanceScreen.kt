@@ -545,7 +545,8 @@ private fun AttendanceDetailDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                record.toDetailPairs().forEachIndexed { index, (label, value) ->
+                val detailPairs = record.toDetailPairs()
+                detailPairs.forEachIndexed { index, (label, value) ->
                     val isAbnormalField = label == "異常" && value.isNotBlank()
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -567,7 +568,7 @@ private fun AttendanceDetailDialog(
                             modifier = Modifier.weight(0.58f)
                         )
                     }
-                    if (index < record.toDetailPairs().lastIndex) {
+                    if (index < detailPairs.lastIndex) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     }
                 }

@@ -14,6 +14,8 @@ import com.jas0n1ee.wixtar.chronos.data.LeaveConfirmData
 import com.jas0n1ee.wixtar.chronos.data.LeavePageInfo
 import com.jas0n1ee.wixtar.chronos.data.MakeupPunchPageInfo
 import com.jas0n1ee.wixtar.chronos.data.MidnightAlarmHelper
+import com.jas0n1ee.wixtar.chronos.data.PjmLeaveHoursCalculator
+import com.jas0n1ee.wixtar.chronos.data.PjmRepository
 import com.jas0n1ee.wixtar.chronos.data.SavedAgent
 import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
@@ -41,7 +43,20 @@ import java.time.format.DateTimeFormatter
 class MobileClockViewModel(application: Application) : AndroidViewModel(application) {
     private val storage = AppStorage(application)
     private val repository = ClockRepository(storage)
+    private val pjmRepository = PjmRepository(storage)
     private val notificationHelper = MobileNotificationHelper(application)
+
+    // PJM 請假工時同步設定（密碼只公開「是否已設定」）
+    val pjmSyncEnabled = storage.pjmSyncEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val pjmUsername = storage.pjmUsername.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val hasPjmPassword = storage.hasPjmPassword.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    private val _isTestingPjm = MutableStateFlow(false)
+    val isTestingPjm: StateFlow<Boolean> = _isTestingPjm
+
+    /** 設定頁測試登入結果：Pair(成功與否, 訊息)；null = 尚未測試 */
+    private val _pjmTestResult = MutableStateFlow<Pair<Boolean, String>?>(null)
+    val pjmTestResult: StateFlow<Pair<Boolean, String>?> = _pjmTestResult
 
     val empId = storage.empId.stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val password = storage.password.stateIn(viewModelScope, SharingStarted.Eagerly, "")
@@ -570,12 +585,80 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
             _isSubmittingLeave.value = true
             repository.confirmLeaveApplication(confirmData, attachments).onSuccess { msg ->
                 _pendingLeaveConfirm.value = null
-                _leaveResultDialog.value = Pair(true, msg)
+                // 請假單已成功送出；PJM 工時同步失敗也不影響請假結果，只在訊息後補充說明
+                val pjmNote = syncLeaveHoursToPjm(confirmData)
+                _leaveResultDialog.value = Pair(true, if (pjmNote != null) "$msg\n\n$pjmNote" else msg)
                 loadLeavePageInfo()
             }.onFailure { e ->
                 _leaveResultDialog.value = Pair(false, e.message ?: "送出請假單失敗")
             }
             _isSubmittingLeave.value = false
+        }
+    }
+
+    /**
+     * 請假單送出成功後，把請假工時同步到 PJM。
+     * @return 要附加在結果視窗的說明；未啟用同步或假別不需同步時回傳 null
+     */
+    private suspend fun syncLeaveHoursToPjm(confirmData: LeaveConfirmData): String? {
+        if (!pjmSyncEnabled.value) return null
+        if (!PjmLeaveHoursCalculator.shouldSync(confirmData.leaveCode)) return null
+
+        val days = PjmLeaveHoursCalculator.split(
+            startDate = confirmData.startDate,
+            endDate = confirmData.endDate,
+            startHHmm = confirmData.startTimeHHmm,
+            endHHmm = confirmData.endTimeHHmm
+        )
+        if (days.isEmpty()) return null
+
+        val dateFmt = DateTimeFormatter.ofPattern("MM/dd")
+        fun hoursText(h: Double) = if (h % 1.0 == 0.0) h.toInt().toString() else h.toString()
+
+        return pjmRepository.syncLeave(days).fold(
+            onSuccess = { result ->
+                buildString {
+                    if (result.submitted.isEmpty()) {
+                        append("【PJM 工時】沒有需要新增的請假工時")
+                    } else {
+                        append("【PJM 工時】已新增 ${result.submitted.size} 天請假工時（待審核）：")
+                        append(result.submitted.joinToString("、") { "${it.date.format(dateFmt)} ${hoursText(it.hours)}h" })
+                    }
+                    if (result.skipped.isNotEmpty()) {
+                        append("\n略過：")
+                        append(result.skipped.joinToString("、") { "${it.first.format(dateFmt)}（${it.second}）" })
+                    }
+                }
+            },
+            onFailure = { e ->
+                "【PJM 工時】請假單已送出，但工時同步失敗：${e.message ?: "未知錯誤"}\n請到 PJM 網站手動補填。"
+            }
+        )
+    }
+
+    /** 儲存 PJM 設定；password 為 null 表示不變更已儲存的密碼 */
+    fun savePjmSettings(enabled: Boolean, username: String, password: String?) {
+        viewModelScope.launch {
+            storage.savePjmSettings(enabled, username, password)
+        }
+    }
+
+    /** 設定頁「測試登入」：用輸入中的密碼，空白時改用已儲存的密碼 */
+    fun testPjmLogin(username: String, typedPassword: String) {
+        viewModelScope.launch {
+            _isTestingPjm.value = true
+            _pjmTestResult.value = null
+            val user = username.ifBlank { empId.value }.trim()
+            val pass = typedPassword.ifEmpty { storage.getPjmPassword().orEmpty() }
+            _pjmTestResult.value = if (user.isBlank() || pass.isBlank()) {
+                Pair(false, "請先輸入 PJM 帳號與密碼")
+            } else {
+                pjmRepository.testLogin(user, pass).fold(
+                    onSuccess = { name -> Pair(true, "登入成功：$name") },
+                    onFailure = { e -> Pair(false, e.message ?: "登入失敗") }
+                )
+            }
+            _isTestingPjm.value = false
         }
     }
 

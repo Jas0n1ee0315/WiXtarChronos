@@ -66,6 +66,7 @@ enum class SettingsSubCategory(val title: String) {
     AUTH("打卡驗證資訊"),
     AGENT("職務代理人"),
     NOTIFICATIONS("推播通知"),
+    PJM("專案工時同步"),
     WEAR_OS("WearOS 整合")
 }
 
@@ -133,6 +134,8 @@ fun MobileSettingsScreen(
     val lunchDndEndTime by viewModel.lunchDndEndTime.collectAsState()
 
     val mockOffWorkTime by viewModel.mockOffWorkTime.collectAsState()
+
+    val pjmSyncEnabled by viewModel.pjmSyncEnabled.collectAsState()
 
     var tempEmpId by remember(empId) { mutableStateOf(empId) }
     var tempPassword by remember(password) { mutableStateOf(password) }
@@ -462,6 +465,17 @@ fun MobileSettingsScreen(
                         subtitle = "下班提前通知、可下班通知、忘記打卡通知、午休勿擾",
                         icon = Icons.Default.Notifications,
                         onClick = { currentSubCategory = SettingsSubCategory.NOTIFICATIONS }
+                    )
+
+                    SettingsMenuItemCard(
+                        title = "專案工時同步（PJM）",
+                        subtitle = if (pjmSyncEnabled) {
+                            "已啟用：請假單送出後自動填寫 PJM 請假工時"
+                        } else {
+                            "未啟用：請假後自動到 pjm.wixtar.com 補填請假工時"
+                        },
+                        icon = Icons.Default.Sync,
+                        onClick = { currentSubCategory = SettingsSubCategory.PJM }
                     )
 
                     SettingsMenuItemCard(
@@ -1183,6 +1197,14 @@ fun MobileSettingsScreen(
                         }
                     }
                 }
+            }
+
+            SettingsSubCategory.PJM -> {
+                PjmSyncSettings(
+                    viewModel = viewModel,
+                    modifier = modifier,
+                    onBack = { currentSubCategory = SettingsSubCategory.MAIN }
+                )
             }
 
             SettingsSubCategory.WEAR_OS -> {

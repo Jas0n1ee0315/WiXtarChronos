@@ -14,6 +14,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 
@@ -22,7 +24,10 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
 class AppStorage(private val context: Context) {
     companion object {
         val EMP_ID = stringPreferencesKey("emp_id")
+        /** 舊版明文 HR 密碼：只用於遷移，App 啟動時會加密搬到 PASSWORD_ENC 並刪除 */
         val PASSWORD = stringPreferencesKey("password")
+        /** 以 SecureStringCipher（Android Keystore）加密後的 HR 密碼 */
+        val PASSWORD_ENC = stringPreferencesKey("password_enc")
         val COOKIE = stringPreferencesKey("cookie")
         val ENC = stringPreferencesKey("enc")
         val GPS_LOCATION = stringPreferencesKey("gps_location")
@@ -64,10 +69,23 @@ class AppStorage(private val context: Context) {
         val AGENT_NAME = stringPreferencesKey("agent_name")
         val AGENT_DEPT = stringPreferencesKey("agent_dept")
         val AGENTS_JSON = stringPreferencesKey("agents_json")
+
+        // PJM（pjm.wixtar.com 專案管理系統）請假工時同步
+        val PJM_SYNC_ENABLED = booleanPreferencesKey("pjm_sync_enabled")
+        val PJM_USERNAME = stringPreferencesKey("pjm_username")
+        /** 以 SecureStringCipher（Android Keystore）加密後的 PJM 密碼，不存明文 */
+        val PJM_PASSWORD_ENC = stringPreferencesKey("pjm_password_enc")
     }
 
     val empId: Flow<String> = context.dataStore.data.map { it[EMP_ID] ?: "" }
-    val password: Flow<String> = context.dataStore.data.map { it[PASSWORD] ?: "" }
+    /**
+     * HR 密碼（明文，僅存在記憶體）。
+     * 讀取介面與舊版相同，所有呼叫端不用修改；實際儲存的是加密值，這裡自動解密。
+     * 尚未遷移的舊資料則退回讀取明文欄位，確保升級過程不會中斷自動登入。
+     */
+    val password: Flow<String> = context.dataStore.data
+        .map { prefs -> readHrPassword(prefs) }
+        .distinctUntilChanged()
     val cookie: Flow<String> = context.dataStore.data.map { it[COOKIE] ?: "" }
     val enc: Flow<String> = context.dataStore.data.map { it[ENC] ?: "" }
     val gpsLocation: Flow<String> = context.dataStore.data.map { it[GPS_LOCATION] ?: "22.987929,120.197210" }
@@ -136,6 +154,11 @@ class AppStorage(private val context: Context) {
         }
     }
 
+    val pjmSyncEnabled: Flow<Boolean> = context.dataStore.data.map { it[PJM_SYNC_ENABLED] ?: false }
+    val pjmUsername: Flow<String> = context.dataStore.data.map { it[PJM_USERNAME] ?: "" }
+    /** 只公開「是否已設定密碼」，明文密碼僅在送出前由 getPjmPassword() 解密取得 */
+    val hasPjmPassword: Flow<Boolean> = context.dataStore.data.map { !it[PJM_PASSWORD_ENC].isNullOrEmpty() }
+
     val lastClockDate: Flow<String?> = context.dataStore.data.map { it[LAST_CLOCK_DATE] }
 
     val clockInTime: Flow<String?> = context.dataStore.data.map { prefs ->
@@ -177,9 +200,17 @@ class AppStorage(private val context: Context) {
         lunchDndEndTime: String = "13:00",
         mockOffWorkTime: String = "17:30"
     ) {
+        // 加密在 edit 區塊外進行；Keystore 異常（極少數裝置）時退回明文，避免使用者無法打卡
+        val encrypted = encryptOrNull(pass)
         context.dataStore.edit { prefs ->
             prefs[EMP_ID] = empId
-            prefs[PASSWORD] = pass
+            if (encrypted != null) {
+                if (encrypted.isEmpty()) prefs.remove(PASSWORD_ENC) else prefs[PASSWORD_ENC] = encrypted
+                prefs.remove(PASSWORD) // 不再保留明文
+            } else {
+                prefs.remove(PASSWORD_ENC)
+                prefs[PASSWORD] = pass
+            }
             prefs[COOKIE] = cookie
             prefs[ENC] = enc
             prefs[GPS_LOCATION] = gps
@@ -254,6 +285,76 @@ class AppStorage(private val context: Context) {
             prefs[AGENT_NAME] = defaultAgent?.name ?: ""
             prefs[AGENT_DEPT] = defaultAgent?.deptName ?: ""
         }
+    }
+
+    /**
+     * 把舊版明文 HR 密碼加密搬到 PASSWORD_ENC，並刪除明文。
+     * 由手機與手錶的 Application.onCreate 呼叫；重複呼叫沒有副作用。
+     * @return true = 這次有搬移
+     */
+    suspend fun migrateLegacyPassword(): Boolean {
+        val prefs = context.dataStore.data.first()
+        val legacy = prefs[PASSWORD]
+        if (legacy.isNullOrEmpty()) return false
+        val encrypted = encryptOrNull(legacy) ?: return false // Keystore 不可用：維持明文，下次再試
+        var migrated = false
+        context.dataStore.edit { p ->
+            // 再確認一次：避免與同時進行的 saveSettings 互相覆蓋
+            if (p[PASSWORD] == legacy) {
+                if (p[PASSWORD_ENC].isNullOrEmpty()) p[PASSWORD_ENC] = encrypted
+                p.remove(PASSWORD)
+                migrated = true
+            }
+        }
+        return migrated
+    }
+
+    /** 讀取 HR 密碼：優先解密 PASSWORD_ENC；解密失敗（金鑰失效）回傳 "" 讓使用者重新輸入 */
+    private fun readHrPassword(prefs: Preferences): String {
+        val encoded = prefs[PASSWORD_ENC]
+        if (!encoded.isNullOrEmpty()) return decryptCached(encoded) ?: ""
+        return prefs[PASSWORD] ?: ""
+    }
+
+    /** DataStore 每次任何設定變更都會重新發送，快取最近一次解密結果避免重複做 Keystore 運算 */
+    @Volatile private var lastEncoded: String? = null
+    @Volatile private var lastDecoded: String? = null
+
+    private fun decryptCached(encoded: String): String? {
+        if (encoded == lastEncoded) return lastDecoded
+        val plain = SecureStringCipher.decrypt(encoded)
+        lastEncoded = encoded
+        lastDecoded = plain
+        return plain
+    }
+
+    /** 加密；Keystore 例外時回傳 null（由呼叫端決定退回方式） */
+    private fun encryptOrNull(plain: String): String? = try {
+        SecureStringCipher.encrypt(plain)
+    } catch (e: Exception) {
+        android.util.Log.w("AppStorage", "Keystore 加密失敗，改用明文儲存：${e.javaClass.simpleName}")
+        null
+    }
+
+    /**
+     * 儲存 PJM 同步設定。
+     * @param password null = 不變更已儲存的密碼；"" = 清除密碼；其他 = 加密後儲存
+     */
+    suspend fun savePjmSettings(enabled: Boolean, username: String, password: String?) {
+        // 加密在 edit 區塊外進行，避免在 DataStore 交易中做 Keystore 運算
+        // PJM 密碼不退回明文：Keystore 失敗時（null）保留原本已儲存的值
+        val encrypted = password?.let { encryptOrNull(it) }
+        context.dataStore.edit { prefs ->
+            prefs[PJM_SYNC_ENABLED] = enabled
+            prefs[PJM_USERNAME] = username.trim()
+            if (encrypted != null) prefs[PJM_PASSWORD_ENC] = encrypted
+        }
+    }
+
+    /** 解密取得 PJM 密碼；未設定回傳 ""，解密失敗（金鑰失效）回傳 null */
+    suspend fun getPjmPassword(): String? {
+        val encoded = context.dataStore.data.first()[PJM_PASSWORD_ENC].orEmpty()
+        return SecureStringCipher.decrypt(encoded)
     }
 
     suspend fun saveEnableWatchSync(enable: Boolean) {

@@ -216,6 +216,8 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
         storage.flexibleEndTime.stateIn(viewModelScope, SharingStarted.Eagerly, "09:30")
     val autoClockOutEnabled: StateFlow<Boolean> =
         storage.autoClockOutEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val scheduledAutoClockInTime: StateFlow<String?> =
+        storage.scheduledAutoClockInTime.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val expectedOffWorkTime: StateFlow<String> = combine(clockInTime, _todayAttendanceRecord) { inTime, record ->
         if (inTime.isNullOrBlank()) return@combine ""

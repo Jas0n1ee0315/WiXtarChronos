@@ -110,7 +110,9 @@ class AutoClockManager(private val context: Context) {
 
                 val triggerMillis = targetDateTime.toInstant().toEpochMilli()
                 setExactAlarm(triggerMillis, AUTO_CLOCK_IN_REQUEST_CODE, AutoClockReceiver.ACTION_AUTO_CLOCK_IN)
-                Log.d("AutoClockManager", "Scheduled AUTO_CLOCK_IN at $targetDateTime (flexEnabled: $flexEnabled)")
+                val timeStr = targetDateTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+                storage.saveScheduledAutoClockInTime(timeStr)
+                Log.d("AutoClockManager", "Scheduled AUTO_CLOCK_IN at $targetDateTime ($timeStr, flexEnabled: $flexEnabled)")
             }
         } catch (e: Exception) {
             Log.e("AutoClockManager", "Failed to schedule Auto Clock In", e)
@@ -133,7 +135,11 @@ class AutoClockManager(private val context: Context) {
 
             val triggerMillis = targetDateTime.toInstant().toEpochMilli()
             setExactAlarm(triggerMillis, AUTO_CLOCK_IN_REQUEST_CODE, AutoClockReceiver.ACTION_AUTO_CLOCK_IN)
-            Log.d("AutoClockManager", "Scheduled Specific AUTO_CLOCK_IN at $targetDateTime")
+            val timeStr = targetDateTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+            kotlinx.coroutines.runBlocking {
+                storage.saveScheduledAutoClockInTime(timeStr)
+            }
+            Log.d("AutoClockManager", "Scheduled Specific AUTO_CLOCK_IN at $targetDateTime ($timeStr)")
         } catch (e: Exception) {
             Log.e("AutoClockManager", "Failed to schedule specific Clock In", e)
         }
@@ -167,6 +173,9 @@ class AutoClockManager(private val context: Context) {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE
             )
             pending?.let { alarmManager.cancel(it) }
+            kotlinx.coroutines.runBlocking {
+                storage.saveScheduledAutoClockInTime(null)
+            }
             Log.d("AutoClockManager", "Cancelled AUTO_CLOCK_IN alarm")
         } catch (e: Exception) {
             Log.e("AutoClockManager", "Error cancelling Auto Clock In", e)

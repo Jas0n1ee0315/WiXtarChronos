@@ -10,6 +10,7 @@ import com.google.android.gms.wearable.WearableListenerService
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
+import com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy
 import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -111,7 +112,7 @@ class MobileWearableListenerService : WearableListenerService() {
                     val gps = storage.gpsLocation.first()
 
                     val currentIn = storage.clockInTime.first()
-                    val isClockingIn = currentIn.isNullOrBlank()
+                    val isClockingIn = WorkShiftPolicy.isClockInAction(currentIn)
 
                     val result = repository.clockIn(empId, pass, cookie, enc, gps)
                     if (result.isSuccess) {

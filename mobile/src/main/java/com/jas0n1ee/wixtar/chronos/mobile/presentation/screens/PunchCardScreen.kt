@@ -23,6 +23,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
+import com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy
 import com.jas0n1ee.wixtar.chronos.mobile.R
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.MobileClockViewModel
 import java.time.LocalTime
@@ -49,6 +50,7 @@ fun PunchCardScreen(
     val autoClockOutEnabled by viewModel.autoClockOutEnabled.collectAsState()
     val scheduledAutoClockInTime by viewModel.scheduledAutoClockInTime.collectAsState()
     val offWorkTimeStr by viewModel.expectedOffWorkTime.collectAsState()
+    val todayAttendanceRecord by viewModel.todayAttendanceRecord.collectAsState()
 
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var activeTimePickerTarget by remember { mutableStateOf<String?>(null) }
@@ -75,12 +77,14 @@ fun PunchCardScreen(
         viewModel.checkAndClearExpiredClockData()
     }
 
-    val actionButtonText = remember(clockInTime, clockOutTime) {
-        when {
-            clockInTime.isNullOrBlank() -> "打上班卡"
-            clockOutTime.isNullOrBlank() -> "打下班卡"
-            else -> "再次打下班卡"
-        }
+    val leaveIntervals = remember(todayAttendanceRecord) {
+        WorkShiftPolicy.parseLeaveIntervals(todayAttendanceRecord?.leave.orEmpty())
+    }
+
+    val actionButtonText = when {
+        WorkShiftPolicy.isClockInAction(clockInTime, leaveIntervals = leaveIntervals) -> "打上班卡"
+        clockOutTime.isNullOrBlank() -> "打下班卡"
+        else -> "再次打下班卡"
     }
 
     val scrollState = rememberScrollState()
@@ -242,7 +246,7 @@ fun PunchCardScreen(
                         }
                     }
 
-                    if (clockInTime.isNullOrBlank() && autoClockInEnabled) {
+                    if (clockInTime.isNullOrBlank() && clockOutTime.isNullOrBlank() && autoClockInEnabled) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                         // Scheduled Auto Clock-In Time

@@ -14,6 +14,7 @@ import com.jas0n1ee.wixtar.chronos.data.ClockRepository
 import com.jas0n1ee.wixtar.chronos.data.MidnightAlarmHelper
 import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
+import com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy
 import com.jas0n1ee.wixtar.chronoswear.service.WearableDataListenerService
 import com.jas0n1ee.wixtar.chronoswear.worker.WearDailyResetWorker
 import kotlinx.coroutines.Job
@@ -198,7 +199,7 @@ class WearClockViewModel(application: Application) : AndroidViewModel(applicatio
             val gps = storage.gpsLocation.first()
 
             val currentIn = clockInTime.value
-            val isClockingInAction = currentIn.isNullOrBlank()
+            val isClockingInAction = WorkShiftPolicy.isClockInAction(currentIn)
 
             if (hasNet && empId.isNotBlank() && pass.isNotBlank()) {
                 val result = repository.clockIn(empId, pass, cookie, enc, gps)

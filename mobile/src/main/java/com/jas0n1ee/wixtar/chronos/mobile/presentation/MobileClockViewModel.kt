@@ -695,7 +695,10 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
             val id = storage.empId.first().trim()
             val pass = storage.password.first().trim()
             if (ck.isNotBlank() || (id.isNotBlank() && pass.isNotBlank())) {
-                repository.getCloudClockInfo(ck).onSuccess { (cloudIn, cloudOut, _) ->
+                repository.getCloudClockInfo(ck).onSuccess { (rawCloudIn, rawCloudOut, _) ->
+                    val leaveIntervals = WorkShiftPolicy.parseLeaveIntervals(_todayAttendanceRecord.value?.leave.orEmpty())
+                    val (cloudIn, cloudOut) = WorkShiftPolicy.normalizeCloudClockTimes(rawCloudIn, rawCloudOut, leaveIntervals)
+
                     _cloudInTime.value = cloudIn
                     _cloudOutTime.value = cloudOut
                     _cloudDate.value = LocalDate.now().toString()
@@ -707,7 +710,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                         val cleanTime = cloudIn.substringBefore(" ").substringBefore("(").trim()
                         val formatter = DateTimeFormatter.ofPattern("HH:mm")
                         val parsedIn = try { LocalTime.parse(cleanTime, formatter) } catch (_: Exception) { LocalTime.of(9, 0) }
-                        val leaveIntervals = WorkShiftPolicy.parseLeaveIntervals(_todayAttendanceRecord.value?.leave.orEmpty())
                         val offWork = WorkShiftPolicy.calculateExpectedOffWorkTime(parsedIn, leaveIntervals)
 
                         val notifyBefore = storage.notifyBeforeOffWork.first()
@@ -1050,7 +1052,8 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
             }
 
             val currentIn = clockInTime.value
-            val isClockingInAction = currentIn.isNullOrBlank()
+            val leaveIntervals = WorkShiftPolicy.parseLeaveIntervals(_todayAttendanceRecord.value?.leave.orEmpty())
+            val isClockingInAction = WorkShiftPolicy.isClockInAction(currentIn, leaveIntervals = leaveIntervals)
 
             val result = repository.clockIn(id, pass, ck, en, gps)
             if (result.isSuccess) {
@@ -1061,7 +1064,6 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                     val cleanTime = time.substringBefore(" ").substringBefore("(").trim()
                     val formatter = DateTimeFormatter.ofPattern("HH:mm")
                     val parsedIn = try { LocalTime.parse(cleanTime, formatter) } catch (_: Exception) { LocalTime.of(9, 0) }
-                    val leaveIntervals = WorkShiftPolicy.parseLeaveIntervals(_todayAttendanceRecord.value?.leave.orEmpty())
                     val offWork = WorkShiftPolicy.calculateExpectedOffWorkTime(parsedIn, leaveIntervals)
 
                     val notifyBefore = storage.notifyBeforeOffWork.first()

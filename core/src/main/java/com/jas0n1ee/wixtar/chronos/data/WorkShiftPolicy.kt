@@ -11,6 +11,8 @@ object WorkShiftPolicy {
         val type: String
     )
 
+    val EARLIEST_CLOCK_OUT_TIME: LocalTime = LocalTime.of(17, 30)
+
     private val LEAVE_PATTERN = Pattern.compile(
         """(\d{2}):?(\d{2})\s*[-~至到]\s*(\d{2}):?(\d{2})\s*([^\d\s<]*)"""
     )
@@ -154,5 +156,82 @@ object WorkShiftPolicy {
             clockInTime <= flexLatest -> clockInTime.plusHours(9) // e.g. 08:43 -> 17:43, 09:12 -> 18:12, 09:30 -> 18:30
             else -> shiftEnd // After 09:30 (e.g. 09:41, 10:00) -> capped at standard 18:00
         }
+    }
+
+    /**
+     * Determines whether a punch action should be treated as clock-in (上班卡) or clock-out (下班卡).
+     *
+     * Rules:
+     * 1. If user has already clocked in (clockInTime is not null/blank), this punch is clock-out (false).
+     * 2. If user has NOT clocked in yet (e.g. forgot morning punch, makeup punch pending):
+     *    - If current time is before earliest off-work threshold (default 17:30, or early afternoon leave start),
+     *      it is treated as clock-in (true).
+     *    - If current time is at or after off-work threshold (>= 17:30, or >= afternoon leave start),
+     *      it is treated as clock-out (false).
+     */
+    fun isClockInAction(
+        clockInTime: String?,
+        now: LocalTime = LocalTime.now(),
+        leaveIntervals: List<LeaveInterval> = emptyList()
+    ): Boolean {
+        if (!clockInTime.isNullOrBlank()) {
+            return false
+        }
+        var threshold = EARLIEST_CLOCK_OUT_TIME
+        val shiftEnd = LocalTime.of(18, 0)
+        for (leave in leaveIntervals) {
+            if (leave.start >= LocalTime.of(12, 0) && leave.end >= shiftEnd) {
+                if (leave.start < threshold) {
+                    threshold = leave.start
+                }
+            }
+        }
+        return now.isBefore(threshold)
+    }
+
+    /**
+     * Normalizes cloud clock-in and clock-out times.
+     * Because the HR system's first punch record of the day is always populated into `in_card`,
+     * if an employee forgot to clock in in the morning and their first punch occurs at or after 17:30,
+     * the HR cloud will return that punch as `in_card` with `out_card` as null.
+     *
+     * If a single punch is at or after 17:30 (or afternoon leave departure), it represents a clock-out (下班卡),
+     * NOT clock-in. In this case, this method shifts it to clockOut and returns null for clockIn.
+     */
+    fun normalizeCloudClockTimes(
+        cloudIn: String?,
+        cloudOut: String?,
+        leaveIntervals: List<LeaveInterval> = emptyList()
+    ): Pair<String?, String?> {
+        if (cloudIn.isNullOrBlank()) {
+            return Pair(null, cloudOut)
+        }
+
+        val cleanIn = cloudIn.substringBefore(" ").substringBefore("(").trim()
+        val parsedIn = try {
+            val parts = cleanIn.split(":")
+            if (parts.size >= 2) {
+                LocalTime.of(parts[0].toInt(), parts[1].toInt())
+            } else null
+        } catch (_: Exception) {
+            null
+        }
+
+        var threshold = EARLIEST_CLOCK_OUT_TIME
+        val shiftEnd = LocalTime.of(18, 0)
+        for (leave in leaveIntervals) {
+            if (leave.start >= LocalTime.of(12, 0) && leave.end >= shiftEnd) {
+                if (leave.start < threshold) {
+                    threshold = leave.start
+                }
+            }
+        }
+
+        if (parsedIn != null && !parsedIn.isBefore(threshold)) {
+            val effectiveOut = cloudOut ?: cloudIn
+            return Pair(null, effectiveOut)
+        }
+
+        return Pair(cloudIn, cloudOut)
     }
 }

@@ -23,6 +23,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
+import com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy
 import com.jas0n1ee.wixtar.chronos.mobile.R
 import com.jas0n1ee.wixtar.chronos.mobile.presentation.MobileClockViewModel
 import java.time.LocalTime
@@ -47,7 +48,9 @@ fun PunchCardScreen(
     val flexibleStartTime by viewModel.flexibleStartTime.collectAsState()
     val flexibleEndTime by viewModel.flexibleEndTime.collectAsState()
     val autoClockOutEnabled by viewModel.autoClockOutEnabled.collectAsState()
+    val scheduledAutoClockInTime by viewModel.scheduledAutoClockInTime.collectAsState()
     val offWorkTimeStr by viewModel.expectedOffWorkTime.collectAsState()
+    val todayAttendanceRecord by viewModel.todayAttendanceRecord.collectAsState()
 
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var activeTimePickerTarget by remember { mutableStateOf<String?>(null) }
@@ -74,12 +77,14 @@ fun PunchCardScreen(
         viewModel.checkAndClearExpiredClockData()
     }
 
-    val actionButtonText = remember(clockInTime, clockOutTime) {
-        when {
-            clockInTime.isNullOrBlank() -> "打上班卡"
-            clockOutTime.isNullOrBlank() -> "打下班卡"
-            else -> "再次打下班卡"
-        }
+    val leaveIntervals = remember(todayAttendanceRecord) {
+        WorkShiftPolicy.parseLeaveIntervals(todayAttendanceRecord?.leave.orEmpty())
+    }
+
+    val actionButtonText = when {
+        WorkShiftPolicy.isClockInAction(clockInTime, leaveIntervals = leaveIntervals) -> "打上班卡"
+        clockOutTime.isNullOrBlank() -> "打下班卡"
+        else -> "再次打下班卡"
     }
 
     val scrollState = rememberScrollState()
@@ -241,7 +246,37 @@ fun PunchCardScreen(
                         }
                     }
 
-                    if (!clockInTime.isNullOrBlank() && clockOutTime.isNullOrBlank()) {
+                    if (clockInTime.isNullOrBlank() && clockOutTime.isNullOrBlank() && autoClockInEnabled) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                        // Scheduled Auto Clock-In Time
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.Schedule,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "預計自動打卡時間",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Text(
+                                text = scheduledAutoClockInTime ?: (if (flexibleClockInEnabled) "$workStartTime ~ $flexibleEndTime (隨機)" else "$workStartTime:00"),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    } else if (!clockInTime.isNullOrBlank() && clockOutTime.isNullOrBlank()) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                         // Expected Off-Work Time
@@ -290,21 +325,38 @@ fun PunchCardScreen(
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "自動打卡",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "自動打卡",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        if (autoClockInEnabled && !scheduledAutoClockInTime.isNullOrBlank()) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    text = "預計排程 $scheduledAutoClockInTime",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
 
                     // 1. 自動打上班卡 (Switch)

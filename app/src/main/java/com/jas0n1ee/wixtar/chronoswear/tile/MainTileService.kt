@@ -25,6 +25,7 @@ import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
 import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
 import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
+import com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy
 import com.jas0n1ee.wixtar.chronoswear.notification.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +69,7 @@ class MainTileService : TileService() {
             if (lastClickId == "PUNCH_CLICK") {
                 val currentIn = storage.clockInTime.first()
                 val currentOut = storage.clockOutTime.first()
-                val isClockingIn = currentIn.isNullOrBlank()
+                val isClockingIn = WorkShiftPolicy.isClockInAction(currentIn)
                 val typeStr = if (isClockingIn) "上班卡" else "下班卡"
 
                 val empId = storage.empId.first()
@@ -361,7 +362,7 @@ private fun buildTile(
         .build()
 
     val normalButtonText = when {
-        clockIn.isNullOrBlank() -> "打上班卡"
+        WorkShiftPolicy.isClockInAction(clockIn) -> "打上班卡"
         clockOut.isNullOrBlank() -> "打下班卡"
         else -> "再打下班卡"
     }

@@ -130,4 +130,61 @@ class WorkShiftPolicyTest {
         val cleanedEntities = WorkShiftPolicy.cleanHtmlTags(rawWithEntities)
         assertEquals("測試 & 成功", cleanedEntities)
     }
+
+    @Test
+    fun testIsClockInAction() {
+        // Morning with no clock-in -> Clock-in action (true)
+        org.junit.Assert.assertTrue(WorkShiftPolicy.isClockInAction(null, LocalTime.of(8, 30)))
+        org.junit.Assert.assertTrue(WorkShiftPolicy.isClockInAction("", LocalTime.of(9, 12)))
+        org.junit.Assert.assertTrue(WorkShiftPolicy.isClockInAction(null, LocalTime.of(17, 29)))
+
+        // At or after 17:30 with no clock-in -> Clock-out action (false)
+        org.junit.Assert.assertFalse(WorkShiftPolicy.isClockInAction(null, LocalTime.of(17, 30)))
+        org.junit.Assert.assertFalse(WorkShiftPolicy.isClockInAction(null, LocalTime.of(18, 36)))
+        org.junit.Assert.assertFalse(WorkShiftPolicy.isClockInAction("", LocalTime.of(18, 48)))
+
+        // Already clocked in -> Always Clock-out action (false)
+        org.junit.Assert.assertFalse(WorkShiftPolicy.isClockInAction("09:00", LocalTime.of(9, 30)))
+        org.junit.Assert.assertFalse(WorkShiftPolicy.isClockInAction("09:00", LocalTime.of(18, 0)))
+
+        // With afternoon leave (15:20 - 18:20) -> Clock-out action starts at 15:20
+        val afternoonLeave = WorkShiftPolicy.parseLeaveIntervals("1520-1820 特休")
+        org.junit.Assert.assertTrue(WorkShiftPolicy.isClockInAction(null, LocalTime.of(15, 10), afternoonLeave))
+        org.junit.Assert.assertFalse(WorkShiftPolicy.isClockInAction(null, LocalTime.of(15, 20), afternoonLeave))
+        org.junit.Assert.assertFalse(WorkShiftPolicy.isClockInAction(null, LocalTime.of(16, 0), afternoonLeave))
+    }
+
+    @Test
+    fun testNormalizeCloudClockTimes() {
+        // Normal morning punch
+        val (in1, out1) = WorkShiftPolicy.normalizeCloudClockTimes("09:05", null)
+        assertEquals("09:05", in1)
+        assertNull(out1)
+
+        // Normal full day
+        val (in2, out2) = WorkShiftPolicy.normalizeCloudClockTimes("08:45", "17:45")
+        assertEquals("08:45", in2)
+        assertEquals("17:45", out2)
+
+        // Only evening punch (forgot morning punch)
+        val (in3, out3) = WorkShiftPolicy.normalizeCloudClockTimes("18:36", null)
+        assertNull(in3)
+        assertEquals("18:36", out3)
+
+        // Only evening punch with (雲端) suffix
+        val (in4, out4) = WorkShiftPolicy.normalizeCloudClockTimes("18:48 (雲端)", null)
+        assertNull(in4)
+        assertEquals("18:48 (雲端)", out4)
+
+        // Both recorded at 18:48 (the bug from yesterday)
+        val (in5, out5) = WorkShiftPolicy.normalizeCloudClockTimes("18:48", "18:48")
+        assertNull(in5)
+        assertEquals("18:48", out5)
+
+        // With afternoon leave (15:20 - 18:20)
+        val afternoonLeave = WorkShiftPolicy.parseLeaveIntervals("1520-1820 特休")
+        val (in6, out6) = WorkShiftPolicy.normalizeCloudClockTimes("15:30", null, afternoonLeave)
+        assertNull(in6)
+        assertEquals("15:30", out6)
+    }
 }

@@ -32,6 +32,7 @@ import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
 import com.jas0n1ee.wixtar.chronos.data.VibrationUtil
+import com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy
 import com.jas0n1ee.wixtar.chronoswear.presentation.PunchButtonStatus
 import com.jas0n1ee.wixtar.chronoswear.presentation.WearClockViewModel
 import java.time.LocalTime
@@ -79,12 +80,10 @@ fun WearMainScreen(
         }
     }
 
-    val normalButtonText = remember(clockInTime, clockOutTime) {
-        when {
-            clockInTime.isNullOrBlank() -> "打上班卡"
-            clockOutTime.isNullOrBlank() -> "打下班卡"
-            else -> "再打下班卡"
-        }
+    val normalButtonText = when {
+        WorkShiftPolicy.isClockInAction(clockInTime) -> "打上班卡"
+        clockOutTime.isNullOrBlank() -> "打下班卡"
+        else -> "再打下班卡"
     }
 
     val buttonText = when (buttonStatus) {

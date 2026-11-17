@@ -344,12 +344,13 @@ fun PunchCardScreen(
                             )
                         }
                         if (autoClockInEnabled && !scheduledAutoClockInTime.isNullOrBlank()) {
+                            val badgePrefix = if (!clockInTime.isNullOrBlank()) "預計明日" else "預計排程"
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer
                             ) {
                                 Text(
-                                    text = "預計排程 $scheduledAutoClockInTime",
+                                    text = "$badgePrefix $scheduledAutoClockInTime",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,

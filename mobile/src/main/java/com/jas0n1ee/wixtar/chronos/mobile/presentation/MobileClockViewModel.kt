@@ -1085,6 +1085,10 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
                         AutoClockManager(getApplication()).scheduleAutoClockOut(offWork, bufferSeconds = 5)
                     }
 
+                    if (storage.autoClockInEnabled.first()) {
+                        AutoClockManager(getApplication()).scheduleAutoClockIn(forceReschedule = true)
+                    }
+
                     _message.value = "打卡成功: 上班卡 ($time)"
                 } else {
                     storage.saveClockOut(time)
@@ -1163,7 +1167,7 @@ class MobileClockViewModel(application: Application) : AndroidViewModel(applicat
 
             val manager = AutoClockManager(getApplication())
             if (newAutoIn) {
-                manager.scheduleAutoClockIn()
+                manager.scheduleAutoClockIn(forceReschedule = true)
             } else {
                 manager.cancelAutoClockIn()
             }

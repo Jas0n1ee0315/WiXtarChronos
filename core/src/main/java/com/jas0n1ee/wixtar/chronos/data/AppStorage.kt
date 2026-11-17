@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -65,6 +66,8 @@ class AppStorage(private val context: Context) {
         val FLEXIBLE_END_TIME = stringPreferencesKey("flexible_end_time")
         val AUTO_CLOCK_OUT_ENABLED = booleanPreferencesKey("auto_clock_out_enabled")
         val SCHEDULED_AUTO_CLOCK_IN_TIME = stringPreferencesKey("scheduled_auto_clock_in_time")
+        val SCHEDULED_AUTO_CLOCK_IN_DATE = stringPreferencesKey("scheduled_auto_clock_in_date")
+        val SCHEDULED_AUTO_CLOCK_IN_MILLIS = longPreferencesKey("scheduled_auto_clock_in_millis")
 
         val AGENT_EMP_ID = stringPreferencesKey("agent_emp_id")
         val AGENT_NAME = stringPreferencesKey("agent_name")
@@ -118,6 +121,8 @@ class AppStorage(private val context: Context) {
     val flexibleEndTime: Flow<String> = context.dataStore.data.map { it[FLEXIBLE_END_TIME] ?: "09:30" }
     val autoClockOutEnabled: Flow<Boolean> = context.dataStore.data.map { it[AUTO_CLOCK_OUT_ENABLED] ?: false }
     val scheduledAutoClockInTime: Flow<String?> = context.dataStore.data.map { it[SCHEDULED_AUTO_CLOCK_IN_TIME] }
+    val scheduledAutoClockInDate: Flow<String?> = context.dataStore.data.map { it[SCHEDULED_AUTO_CLOCK_IN_DATE] }
+    val scheduledAutoClockInEpochMillis: Flow<Long?> = context.dataStore.data.map { it[SCHEDULED_AUTO_CLOCK_IN_MILLIS] }
 
     val agentEmpId: Flow<String> = context.dataStore.data.map { it[AGENT_EMP_ID] ?: "" }
     val agentName: Flow<String> = context.dataStore.data.map { it[AGENT_NAME] ?: "" }
@@ -261,6 +266,20 @@ class AppStorage(private val context: Context) {
                 prefs[SCHEDULED_AUTO_CLOCK_IN_TIME] = time
             } else {
                 prefs.remove(SCHEDULED_AUTO_CLOCK_IN_TIME)
+            }
+        }
+    }
+
+    suspend fun saveScheduledAutoClockIn(time: String?, date: String?, epochMillis: Long?) {
+        context.dataStore.edit { prefs ->
+            if (time != null && date != null && epochMillis != null) {
+                prefs[SCHEDULED_AUTO_CLOCK_IN_TIME] = time
+                prefs[SCHEDULED_AUTO_CLOCK_IN_DATE] = date
+                prefs[SCHEDULED_AUTO_CLOCK_IN_MILLIS] = epochMillis
+            } else {
+                prefs.remove(SCHEDULED_AUTO_CLOCK_IN_TIME)
+                prefs.remove(SCHEDULED_AUTO_CLOCK_IN_DATE)
+                prefs.remove(SCHEDULED_AUTO_CLOCK_IN_MILLIS)
             }
         }
     }

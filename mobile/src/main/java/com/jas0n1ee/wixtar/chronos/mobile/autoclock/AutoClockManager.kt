@@ -37,12 +37,15 @@ class AutoClockManager(private val context: Context) {
      * When flexible punch is enabled, randomizes the target punch time ONCE within
      * the flexible window [workStartTime, flexEndTime] when scheduling.
      */
-    fun scheduleAutoClockIn() {
+    fun scheduleAutoClockIn(forceReschedule: Boolean = false) {
         try {
-            cancelAutoClockIn()
             kotlinx.coroutines.runBlocking {
                 val enabled = storage.autoClockInEnabled.first()
-                if (!enabled) return@runBlocking
+                if (!enabled) {
+                    cancelAutoClockIn()
+                    storage.saveScheduledAutoClockIn(null, null, null)
+                    return@runBlocking
+                }
 
                 val workStartStr = storage.workStartTime.first()
                 val flexEnabled = storage.flexibleClockInEnabled.first()
@@ -61,7 +64,8 @@ class AutoClockManager(private val context: Context) {
                 }
 
                 val now = ZonedDateTime.now(ZoneId.systemDefault())
-                val todayDateStr = LocalDate.now().toString()
+                val todayDate = LocalDate.now()
+                val todayDateStr = todayDate.toString()
                 val lastClockDate = storage.lastClockDate.first()
                 val clockIn = storage.clockInTime.first()
 
@@ -69,6 +73,27 @@ class AutoClockManager(private val context: Context) {
 
                 // Determine whether to schedule for today or tomorrow
                 val scheduleForToday = !alreadyClockedToday && now.toLocalTime() < flexEndTime.minusMinutes(1)
+                val targetDateStr = if (scheduleForToday) todayDateStr else todayDate.plusDays(1).toString()
+
+                val existingDate = storage.scheduledAutoClockInDate.first()
+                val existingTime = storage.scheduledAutoClockInTime.first()
+                val existingMillis = storage.scheduledAutoClockInEpochMillis.first()
+                val nowMillis = System.currentTimeMillis()
+
+                // If not forcing reschedule, check if existing schedule is valid and for the intended target date
+                if (!forceReschedule &&
+                    existingDate == targetDateStr &&
+                    !existingTime.isNullOrBlank() &&
+                    existingMillis != null &&
+                    existingMillis > nowMillis
+                ) {
+                    // Alarm is already scheduled for target date; ensure alarm is active and do not re-randomize
+                    setExactAlarm(existingMillis, AUTO_CLOCK_IN_REQUEST_CODE, AutoClockReceiver.ACTION_AUTO_CLOCK_IN)
+                    Log.d("AutoClockManager", "Retaining existing scheduled AUTO_CLOCK_IN for $targetDateStr at $existingTime")
+                    return@runBlocking
+                }
+
+                cancelAutoClockIn()
 
                 val targetDateTime: ZonedDateTime = if (scheduleForToday) {
                     val targetTime = if (flexEnabled) {
@@ -111,8 +136,12 @@ class AutoClockManager(private val context: Context) {
                 val triggerMillis = targetDateTime.toInstant().toEpochMilli()
                 setExactAlarm(triggerMillis, AUTO_CLOCK_IN_REQUEST_CODE, AutoClockReceiver.ACTION_AUTO_CLOCK_IN)
                 val timeStr = targetDateTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
-                storage.saveScheduledAutoClockInTime(timeStr)
-                Log.d("AutoClockManager", "Scheduled AUTO_CLOCK_IN at $targetDateTime ($timeStr, flexEnabled: $flexEnabled)")
+                storage.saveScheduledAutoClockIn(
+                    time = timeStr,
+                    date = targetDateStr,
+                    epochMillis = triggerMillis
+                )
+                Log.d("AutoClockManager", "Scheduled NEW AUTO_CLOCK_IN for $targetDateStr at $targetDateTime ($timeStr, flexEnabled: $flexEnabled)")
             }
         } catch (e: Exception) {
             Log.e("AutoClockManager", "Failed to schedule Auto Clock In", e)
@@ -136,10 +165,15 @@ class AutoClockManager(private val context: Context) {
             val triggerMillis = targetDateTime.toInstant().toEpochMilli()
             setExactAlarm(triggerMillis, AUTO_CLOCK_IN_REQUEST_CODE, AutoClockReceiver.ACTION_AUTO_CLOCK_IN)
             val timeStr = targetDateTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+            val targetDateStr = targetDateTime.toLocalDate().toString()
             kotlinx.coroutines.runBlocking {
-                storage.saveScheduledAutoClockInTime(timeStr)
+                storage.saveScheduledAutoClockIn(
+                    time = timeStr,
+                    date = targetDateStr,
+                    epochMillis = triggerMillis
+                )
             }
-            Log.d("AutoClockManager", "Scheduled Specific AUTO_CLOCK_IN at $targetDateTime ($timeStr)")
+            Log.d("AutoClockManager", "Scheduled Specific AUTO_CLOCK_IN for $targetDateStr at $targetDateTime ($timeStr)")
         } catch (e: Exception) {
             Log.e("AutoClockManager", "Failed to schedule specific Clock In", e)
         }
@@ -297,7 +331,7 @@ class AutoClockManager(private val context: Context) {
 
             if (todayDateStr == lastClockDate && !localClockIn.isNullOrBlank()) {
                 Log.d("AutoClockManager", "Today already clocked in ($localClockIn). Rescheduling for tomorrow.")
-                scheduleAutoClockIn()
+                scheduleAutoClockIn(forceReschedule = true)
                 return
             }
 
@@ -331,14 +365,14 @@ class AutoClockManager(private val context: Context) {
                 if (todayRecord.clockIn.isNotBlank()) {
                     Log.d("AutoClockManager", "Cloud already has clock-in: ${todayRecord.clockIn}")
                     storage.saveClockIn(todayRecord.clockIn)
-                    scheduleAutoClockIn()
+                    scheduleAutoClockIn(forceReschedule = true)
                     return
                 }
 
                 // Check shiftName: only proceed if 常日班
                 if (todayRecord.shiftName.isNotBlank() && !todayRecord.shiftName.contains("常日班")) {
                     Log.d("AutoClockManager", "Today is not 常日班 (${todayRecord.shiftName}). Skipping punch.")
-                    scheduleAutoClockIn()
+                    scheduleAutoClockIn(forceReschedule = true)
                     return
                 }
 
@@ -359,7 +393,7 @@ class AutoClockManager(private val context: Context) {
 
                 if (effectiveTime == null) {
                     Log.d("AutoClockManager", "Full-day leave today. Skipping punch.")
-                    scheduleAutoClockIn()
+                    scheduleAutoClockIn(forceReschedule = true)
                     return
                 }
 
@@ -429,7 +463,7 @@ class AutoClockManager(private val context: Context) {
             }
 
             // Schedule next day's auto clock in
-            scheduleAutoClockIn()
+            scheduleAutoClockIn(forceReschedule = true)
         } else {
             val errorMsg = punchResult.exceptionOrNull()?.message ?: "打卡失敗"
             Log.e("AutoClockManager", "Auto Clock In failed: $errorMsg (retryCount: $retryCount)")

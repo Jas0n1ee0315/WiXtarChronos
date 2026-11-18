@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.Log
 import com.jas0n1ee.wixtar.chronos.data.AppStorage
 import com.jas0n1ee.wixtar.chronos.data.ClockRepository
+import com.jas0n1ee.wixtar.chronos.data.WearableSyncManager
 import com.jas0n1ee.wixtar.chronos.data.WorkShiftPolicy
 import com.jas0n1ee.wixtar.chronos.mobile.notification.MobileNotificationHelper
 import com.jas0n1ee.wixtar.chronos.mobile.receiver.AutoClockReceiver
@@ -464,6 +465,18 @@ class AutoClockManager(private val context: Context) {
 
             // Schedule next day's auto clock in
             scheduleAutoClockIn(forceReschedule = true)
+
+            val enableWatchSync = storage.enableWatchSync.first()
+            if (enableWatchSync) {
+                val todayStr = LocalDate.now().toString()
+                val clockOut = storage.clockOutTime.first()
+                WearableSyncManager.syncClockStatus(
+                    context = context,
+                    clockIn = time,
+                    clockOut = clockOut,
+                    lastDate = todayStr
+                )
+            }
         } else {
             val errorMsg = punchResult.exceptionOrNull()?.message ?: "打卡失敗"
             Log.e("AutoClockManager", "Auto Clock In failed: $errorMsg (retryCount: $retryCount)")
@@ -510,6 +523,18 @@ class AutoClockManager(private val context: Context) {
                 notificationHelper.cancelReminders()
                 notificationHelper.cancelLiveUpdateNotification()
                 notificationHelper.sendNotification("WiXtar 自動打下班卡成功", "時間 $time，辛苦了，可以放心下班囉！")
+
+                val enableWatchSync = storage.enableWatchSync.first()
+                if (enableWatchSync) {
+                    val todayStr = LocalDate.now().toString()
+                    val clockIn = storage.clockInTime.first()
+                    WearableSyncManager.syncClockStatus(
+                        context = context,
+                        clockIn = clockIn,
+                        clockOut = time,
+                        lastDate = todayStr
+                    )
+                }
             } else {
                 val errorMsg = punchResult.exceptionOrNull()?.message ?: "打卡失敗"
                 Log.e("AutoClockManager", "Auto Clock Out failed: $errorMsg")
